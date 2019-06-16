@@ -1,0 +1,27 @@
+#####################################################################
+# my bochs pc
+#####################################################################
+
+# 内存
+megs: 32
+
+# BIOS
+romimage: file=$BXSHARE/BIOS-bochs-latest
+
+# vga rom
+vgaromimage: file=$BXSHARE/VGABIOS-lgpl-latest
+
+# 软盘
+floppya: 1_44=floppya.img, status=inserted
+
+# 启动盘
+boot: floppy
+
+# logfile
+log: bochs.log
+
+# 鼠标
+mouse: enabled=0
+
+# 键盘
+keyboard: keymap=$BXSHARE/keymaps/x11-pc-us.map
