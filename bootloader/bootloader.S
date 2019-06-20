@@ -69,7 +69,7 @@ LABEL_SEARCH_IN_ROOT_DIR_BEGIN:
     mov     (wSectorNo),%ax             /* %ax <- sector number in root */
     mov     $1,%cl
     call    ReadSector
-    mov     $LoaderFileName,%si         /* %ds:%si -> LOADER  BIN */
+    mov     $LoaderFileName,%si         /* %ds:%si -> KERNEL  BIN */
     mov     $OffsetOfLoader,%di         /* BaseOfLoader<<4+100*/
     cld
     mov     $0x10,%dx
