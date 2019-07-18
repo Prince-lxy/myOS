@@ -68,11 +68,23 @@ PROTECT_MODE:
 	mov gs, ax
 	mov edi, (80 * 0 + 0) * 2
 	mov ah, 0x0c
-	mov al, 'P'
+	xor ecx, ecx
+
+.loop:
+	mov al, [protectMesg + ecx]
 	mov [gs:edi], ax
+	add edi, 0x2
+	inc ecx
+	cmp al, 0x0
+	jz .end
+	jnc .loop
+
+.end:
 	jmp $
 
 protectModeLen equ ($ - PROTECT_MODE)
+protectMesg: db "welcome to protect mode!"
+endPmsg: db 0
 
-times 510 - 0x91 db 0
+times 510 - 0xba db 0
 dw 0xaa55
