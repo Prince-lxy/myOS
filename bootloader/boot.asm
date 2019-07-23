@@ -1,3 +1,11 @@
+BASE_STACK			equ		0x7c00		;; 堆栈基地址
+BASE_LOADER			equ		0x9000		;; LOADER.BIN 基地址
+OFFSET_LOADER		equ		0x100		;; LOADER.BIN 偏移量
+ROOT_DIR_SEC_NUM	equ		14			;; 根目录所占扇区数
+SEC_NO_ROOT_DIR		equ		19			;; 根目录从第 19 号扇区开始
+SEC_NO_FAT1			equ		1			;; FAT1 从 1 号扇区开始
+DELTA_SEC_NUM		equ		17			;; 1 + 9 + 9 - 2
+
 org 0x7c00
 	jmp start
 	nop
@@ -24,12 +32,98 @@ BS_VolLab			db	"Prince  lxy"	;; 卷标, 11 bytes
 BS_FileSysType		db	"FAT12   "		;; 文件系统类型，8 bytes
 
 start:
+	mov ax, cs
+	mov ds, ax
+	mov es,	ax
+	mov ss,	ax
+	mov sp,	BASE_STACK
 
-;; readSector
+	;; 清屏
+	mov ax, 0x0600				;; int 0x10 功能6
+	mov bx, 0x0700				;; bh = 颜色
+	mov cx, 0					;; ch = 起始行 cl = 起始列
+	mov dx, 0x184f				;; dh = 结束行 dl = 结束列
+	int 0x10
+
+	;; 打印 "Booting and find loader..."
+	mov ax, boot_and_find_loader
+	mov cx, boot_and_find_loader_len
+	call print_str
+
+	;; 重置软盘
+	xor ah, ah					;; int 0x13 功能0
+	xor dl, dl					;; dl = 驱动器号
+	int 0x13
+
+	;; 从根文件系统读取 LOADER.BIN
+	mov word [sec_no], SEC_NO_ROOT_DIR
+
+search_in_root_dir:
+	cmp word [root_dir_num], 0		;; 14个根目录扇区已经搜索完毕
+	jz	not_found
+	dec word [root_dir_num]
+	
+	mov ax, BASE_LOADER
+	mov es, ax
+	mov bx, OFFSET_LOADER			;; es:bx = LOADER.BIN 缓冲区地址
+	mov ax, [sec_no]
+	mov cl, 1
+	call read_sector				;; 读取扇区号为 sec_no 的根目录分区到 es:bx
+
+	mov si, loader_file_name		;; ds:si = "LOADER  BIN"
+	mov di, OFFSET_LOADER			;; es:di = 0x9000 * 0x10 + 0x100 = 0x90100
+
+	cld
+	mov dx, 0x10					;; 一个根目录扇区包含文件描述符数目(512 / 32 = 16)
+search_file_name:
+	cmp dx, 0						;; 一个扇区内16个文件描述符都搜索完毕
+	jz goto_next_root_dir_sector
+	dec dx
+	
+	mov cx, 11						;; 文件描述符前11个字节为文件名字符串
+compare_file_name:
+	cmp cx, 0
+	jz filename_found
+	dec cx
+
+	lodsb							;; ds:si -> al; si++
+	cmp al, byte [es:di]
+	jz go_on
+	jmp different
+
+go_on:
+	inc di
+	jmp compare_file_name
+
+different:
+	and di, 0xffe0					;; di 重新指向文件名字符串第一个字符
+	add di, 0x20					;; di 指向下一个文件描述符
+	mov si, loader_file_name		;; ds:si 归位
+	jmp search_file_name
+
+goto_next_root_dir_sector:
+	add word [sec_no], 1
+	jmp search_in_root_dir
+
+not_found:
+	;; 打印 "loader not found..."
+	mov ax, loader_not_found
+	mov cx, loader_not_found_len
+	call print_str
+	jmp $
+
+filename_found:
+	;; 打印 "loader founded..."
+	mov ax, loader_founded
+	mov cx, loader_founded_len
+	call print_str
+	jmp $
+
+;; read_sector
 ;; 起始扇区 = ax
 ;; 扇区数 = cl
 ;; 缓冲区位置 = es:bx
-readSector:
+read_sector:
 	push bp
 	mov bp, sp
 	
@@ -53,22 +147,47 @@ readSector:
 
 	pop bx					;; int 0x13 参数 ：缓冲区偏移量
 
-goOnReading:
+go_on_reading:
 	mov ah, 2				;; int 0x13 参数 ：读方法
 	mov al, byte [bp - 2] 	;; int 0x13 参数 ：扇区个数
 	int 0x13
-	jc .goOnReading
+	jc go_on_reading
 
 	add esp, 2
 	pop bp
 	
 	ret
 
+;; print_str
+;; ax = 字符串首字母位置
+;; cx = 字符串长度
+print_str:
+	mov bp, ax
+	mov ax, ds
+	mov es, ax							;; es:bp 字符串
+	mov ax, 0x1301
+	mov bx, 0x000c						;; bh = 页码 bl = 颜色
+	mov byte dh, [print_line]			;; 行
+	mov dl, 0							;; 列
+	int 0x10
 
-baseOfStack		equ 0x7c00				;; 堆栈基地址
-baseOfLoader	equ 0x9000				;; LOADER.BIN 基地址
-offsetOfLoader	equ	0x100				;; LOADER.BIN 偏移量
-rootDirSectors	equ	14					;; 根目录所占扇区数
-secNoofRootDir	equ	19					;; 根目录从第 19 号扇区开始
-secNoOfFAT1		equ	1					;; FAT1 从 1 号扇区开始
-deltaSecNo		equ	17					;; 1 + 9 + 9 - 2
+	inc byte [print_line]
+
+	ret
+
+;; 变量
+root_dir_num	dw	ROOT_DIR_SEC_NUM	;; 根目总录扇区数14
+sec_no			dw	0					;; 当前扇区号
+flag_odd		db	0					;; 是否为奇数
+print_line		db	0					;; 字符显示行
+
+loader_file_name		db	"LOADER  BIN", 0
+boot_and_find_loader	db	"Booting and finding loader...", 0
+boot_and_find_loader_len	equ $ - boot_and_find_loader
+loader_founded			db	"Loader founded...", 0
+loader_founded_len			equ $ - loader_founded
+loader_not_found		db	"Loader not found...", 0
+loader_not_found_len		equ $ - loader_not_found
+
+times 510 - ($ - $$) db 0
+dw 0xaa55
