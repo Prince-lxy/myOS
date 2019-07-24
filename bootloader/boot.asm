@@ -117,6 +117,52 @@ filename_found:
 	mov ax, loader_founded
 	mov cx, loader_founded_len
 	call print_str
+
+	;; 打印 "Loading"
+	mov ax, loading
+	mov cx, loading_len
+	call print_str
+
+	mov ax, ROOT_DIR_SEC_NUM
+	and di, 0xffe0					;; di 重新指向文件描述符第一个字节
+	add di, 0x1a					;; 指向文件描述符中起始 FAT 项
+	mov cx, word [es:di]			;; cx = LOADER.BIN 在 FAT 表中 FAT 项号（2）
+	push cx
+
+	add	cx, ax
+	add cx, DELTA_SEC_NUM			;; cx = LOADER.BIN 内容所在的扇区号
+	
+	mov ax, BASE_LOADER
+	mov es, ax
+	mov bx, OFFSET_LOADER			;; es:bx = LOADER.BIN 缓冲区
+
+	mov ax, cx						;; ax = 扇区号
+go_on_loading_file:
+	push ax
+	push bx
+	mov ah, 0x0e					;; ah = 0x0e int 0x10 打印字符功能
+	mov al, '.'						;; al = 字符
+	mov bx, 0x000f					;; bh = 页码 bl = 颜色
+	int 0x10
+	pop bx
+	pop ax
+
+	mov cl, 1
+	call read_sector
+
+	pop ax							;; 取出 LOADER.BIN 在 FAT 中的项号
+	call get_fat_entry
+
+	cmp ax, 0x0fff
+	jz	file_loaded
+
+	push ax
+	add ax, ROOT_DIR_SEC_NUM
+	add ax, DELTA_SEC_NUM
+	add bx, [BPB_BytsPerSec]
+	jmp go_on_loading_file
+
+file_loaded:
 	jmp $
 
 ;; read_sector
@@ -165,7 +211,7 @@ print_str:
 	mov bp, ax
 	mov ax, ds
 	mov es, ax							;; es:bp 字符串
-	mov ax, 0x1301
+	mov ax, 0x1301						;; int 0x10 打印字符串功能
 	mov bx, 0x000c						;; bh = 页码 bl = 颜色
 	mov byte dh, [print_line]			;; 行
 	mov dl, 0							;; 列
@@ -175,19 +221,58 @@ print_str:
 
 	ret
 
+get_fat_entry:
+	push es
+	push bx
+	push ax
+
+	mov ax, BASE_LOADER
+	sub ax, 0x100						;; 基地址在运算时会左移16位，此处为FAT空出来4k空间
+	mov es, ax							
+	mov bx, 0							;; es:bx = (BASE_LOADER - 100):0
+	xor ax, ax
+ 	mov ax, SEC_NO_FAT1
+	mov cl, 2
+	call read_sector
+
+	mov byte [flag_odd], 0
+	pop ax								;; ax = LOADER.BIN 在 FAT 中的起始项号
+	mov bx, 3
+	mul bx
+	mov bx, 2
+	div bx								;; ax = 商 dx = 余数
+	cmp dx, 0
+	jz	fat_even
+	mov byte [flag_odd], 1
+
+fat_even:
+	add bx, ax
+	mov ax, [es:bx]
+	cmp byte [flag_odd], 1
+	jnz flat_even_2
+	shr ax, 4
+
+flat_even_2:
+	and ax, 0x0fff
+	pop bx
+	pop es
+	ret
+
 ;; 变量
 root_dir_num	dw	ROOT_DIR_SEC_NUM	;; 根目总录扇区数14
 sec_no			dw	0					;; 当前扇区号
 flag_odd		db	0					;; 是否为奇数
 print_line		db	0					;; 字符显示行
 
-loader_file_name		db	"LOADER  BIN", 0
-boot_and_find_loader	db	"Booting and finding loader...", 0
+loader_file_name		db	"LOADER  BIN"
+boot_and_find_loader	db	"Boot and find loader"
 boot_and_find_loader_len	equ $ - boot_and_find_loader
-loader_founded			db	"Loader founded...", 0
+loader_founded			db	"Loader founded"
 loader_founded_len			equ $ - loader_founded
-loader_not_found		db	"Loader not found...", 0
+loader_not_found		db	"Loader not found"
 loader_not_found_len		equ $ - loader_not_found
+loading					db 	"Loading"
+loading_len					equ $ - loading 
 
 times 510 - ($ - $$) db 0
 dw 0xaa55
