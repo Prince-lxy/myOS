@@ -45,7 +45,7 @@ start:
 	mov dx, 0x184f				;; dh = 结束行 dl = 结束列
 	int 0x10
 
-	;; 打印 "Booting and find loader..."
+	;; 打印 "Booting & find loader"
 	mov ax, boot_and_find_loader
 	mov cx, boot_and_find_loader_len
 	call print_str
@@ -106,16 +106,16 @@ goto_next_root_dir_sector:
 	jmp search_in_root_dir
 
 not_found:
-	;; 打印 "loader not found..."
+	;; 打印 "loader not found"
 	mov ax, loader_not_found
 	mov cx, loader_not_found_len
 	call print_str
 	jmp $
 
 filename_found:
-	;; 打印 "loader founded..."
-	mov ax, loader_founded
-	mov cx, loader_founded_len
+	;; 打印 "loader found"
+	mov ax, loader_found
+	mov cx, loader_found_len
 	call print_str
 
 	;; 打印 "Loading"
@@ -163,7 +163,7 @@ go_on_loading_file:
 	jmp go_on_loading_file
 
 file_loaded:
-	jmp $
+	jmp BASE_LOADER:OFFSET_LOADER
 
 ;; read_sector
 ;; 起始扇区 = ax
@@ -208,6 +208,7 @@ go_on_reading:
 ;; ax = 字符串首字母位置
 ;; cx = 字符串长度
 print_str:
+	push es
 	mov bp, ax
 	mov ax, ds
 	mov es, ax							;; es:bp 字符串
@@ -219,6 +220,7 @@ print_str:
 
 	inc byte [print_line]
 
+	pop es
 	ret
 
 get_fat_entry:
@@ -246,7 +248,7 @@ get_fat_entry:
 	mov byte [flag_odd], 1
 
 fat_even:
-	add bx, ax
+	mov bx, ax
 	mov ax, [es:bx]
 	cmp byte [flag_odd], 1
 	jnz flat_even_2
@@ -265,10 +267,10 @@ flag_odd		db	0					;; 是否为奇数
 print_line		db	0					;; 字符显示行
 
 loader_file_name		db	"LOADER  BIN"
-boot_and_find_loader	db	"Boot and find loader"
+boot_and_find_loader	db	"Boot & find loader"
 boot_and_find_loader_len	equ $ - boot_and_find_loader
-loader_founded			db	"Loader founded"
-loader_founded_len			equ $ - loader_founded
+loader_found			db	"Loader found"
+loader_found_len			equ $ - loader_found
 loader_not_found		db	"Loader not found"
 loader_not_found_len		equ $ - loader_not_found
 loading					db 	"Loading"

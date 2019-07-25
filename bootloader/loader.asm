@@ -3,5 +3,5 @@ loader:
 	mov gs, ax
 	mov ah, 0xf
 	mov al, 'L'
-	mov [gs:((80 * 3 +0) * 2)], ax
+	mov [gs:((80 * 0 + 39) * 2)], ax
 	jmp $
