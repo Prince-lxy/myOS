@@ -54,6 +54,7 @@ dkms.conf
 # Image file
 *.img
 *.bin
+*.BIN
 
 # Log file
 *.log
