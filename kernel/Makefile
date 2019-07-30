@@ -1,10 +1,10 @@
 all: boot.bin LOADER.BIN KERNEL.BIN image
 
-boot.bin: boot.asm
-	nasm -o $@ $^
+boot.bin: boot.asm fat12.inc
+	nasm -o $@ $<
 
-LOADER.BIN: loader.asm
-	nasm -o $@ $^
+LOADER.BIN: loader.asm fat12.inc
+	nasm -o $@ $<
 
 KERNEL.BIN: kernel.asm
 	nasm -o $@ $^
