@@ -17,4 +17,4 @@ copy:
 	@cp pm.img ../bochs-pc/floppya.img
 
 clean:
-	@rm pm.bin
+	@rm pm.bin pm.img
