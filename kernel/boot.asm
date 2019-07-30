@@ -1,12 +1,12 @@
-BASE_STACK			equ		0x7c00		;; 堆栈基地址
-BASE_LOADER			equ		0x9000		;; LOADER.BIN 基地址
-OFFSET_LOADER		equ		0x100		;; LOADER.BIN 偏移量
-
 org 0x7c00
 	jmp start
 	nop
 
 %include "fat12.inc"
+
+BASE_STACK			equ		0x7c00		;; 堆栈基地址
+BASE_LOADER			equ		0x9000		;; LOADER.BIN 基地址
+OFFSET_LOADER		equ		0x100		;; LOADER.BIN 偏移量
 
 start:
 	mov ax, cs

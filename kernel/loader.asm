@@ -1,26 +1,131 @@
-BASE_STACK			equ		0x100		;; 堆栈基地址
-BASE_KERNEL			equ		0x8000		;; KERNEL.BIN 基地址
-OFFSET_KERNEL		equ		0x100		;; KERNEL.BIN 偏移量
-
 org 0x90100
 	jmp start
 	nop
 
 %include "fat12.inc"
 
+BASE_STACK			equ		0x100		;; 堆栈基地址
+BASE_KERNEL			equ		0x8000		;; KERNEL.BIN 基地址
+OFFSET_KERNEL		equ		0x100		;; KERNEL.BIN 偏移量
+
+;; 变量
+root_dir_num	dw	ROOT_DIR_SEC_NUM	;; 根目总录扇区数14
+sec_no			dw	0					;; 当前扇区号
+flag_odd		db	0					;; 是否为奇数
+print_line		db	3					;; 字符显示行
+
+kernel_file_name		db	"KERNEL  BIN"
+find_kernel				db	"find kernel"
+find_kernel_len				equ $ - find_kernel
+kernel_found			db	"kernel found"
+kernel_found_len			equ $ - kernel_found
+kernel_not_found		db	"kernel not found"
+kernel_not_found_len		equ $ - kernel_not_found
+loading					db 	"loading"
+loading_len					equ $ - loading 
+
+;; read_sector
+;; 起始扇区 = ax
+;; 扇区数 = cl
+;; 缓冲区位置 = es:bx
+read_sector:
+	push bp
+	mov bp, sp
+	
+	sub esp, 2				;; 保存扇区数
+	mov byte [bp - 2], cl
+	push bx					;; 保存缓冲区偏移量
+
+	mov bl, [BPB_SecPerTrk]	;; 除数 18
+	div bl					;; ax/bl : al = 商 ah = 余数
+
+	inc ah					;; 起始扇区号
+	mov cl, ah				;; int 0x13 参数
+
+	mov dh, al				;; 磁头号
+	and dh, 1				;; int 0x13 参数
+
+	shr al, 1				;; 柱面号
+	mov ch, al				;; int 0x13 参数
+
+	mov dl, [BS_DrvNum]		;; int 0x13 参数 ：驱动器号
+
+	pop bx					;; int 0x13 参数 ：缓冲区偏移量
+
+go_on_reading:
+	mov ah, 2				;; int 0x13 参数 ：读方法
+	mov al, byte [bp - 2] 	;; int 0x13 参数 ：扇区个数
+	int 0x13
+	jc go_on_reading
+
+	add esp, 2
+	pop bp
+	
+	ret
+
+;; print_str
+;; ax = 字符串首字母位置
+;; cx = 字符串长度
+print_str:
+	push es
+	mov bp, ax
+	mov ax, ds
+	mov es, ax							;; es:bp 字符串
+	mov ax, 0x1301						;; int 0x10 打印字符串功能
+	mov bx, 0x000c						;; bh = 页码 bl = 颜色
+	mov byte dh, [print_line]			;; 行
+	mov dl, 0							;; 列
+	int 0x10
+
+	inc byte [print_line]
+
+	pop es
+	ret
+
+get_fat_entry:
+	push es
+	push bx
+	push ax
+
+	mov ax, BASE_KERNEL
+	sub ax, 0x100						;; 基地址在运算时会左移16位，此处为FAT空出来4k空间
+	mov es, ax							
+	mov bx, 0							;; es:bx = (BASE_KERNEL - 100):0
+	xor ax, ax
+ 	mov ax, SEC_NO_FAT1
+	mov cl, 2
+	call read_sector
+
+	mov byte [flag_odd], 0
+	pop ax								;; ax = KERNEL.BIN 在 FAT 中的起始项号
+	mov bx, 3
+	mul bx
+	mov bx, 2
+	div bx								;; ax = 商 dx = 余数
+	cmp dx, 0
+	jz	fat_even
+	mov byte [flag_odd], 1
+
+fat_even:
+	mov bx, ax
+	mov ax, [es:bx]
+	cmp byte [flag_odd], 1
+	jnz flat_even_2
+	shr ax, 4
+
+flat_even_2:
+	and ax, 0x0fff
+	pop bx
+	pop es
+	ret
+
+;; 主函数
 start:
     mov ax, cs
     mov ds, ax
     mov es, ax
     mov ss, ax
     mov sp, BASE_STACK
-
-	;; 清屏
-	;;mov ax, 0x0600				;; int 0x10 功能6
-	;;mov bx, 0x0700				;; bh = 颜色
-	;;mov cx, 0					;; ch = 起始行 cl = 起始列
-	;;mov dx, 0x184f				;; dh = 结束行 dl = 结束列
-	;;int 0x10
 
 	;; 打印 "Booting & find kernel"
 	mov ax, find_kernel
@@ -141,114 +246,3 @@ go_on_loading_file:
 
 file_loaded:
 	jmp BASE_KERNEL:OFFSET_KERNEL
-
-;; read_sector
-;; 起始扇区 = ax
-;; 扇区数 = cl
-;; 缓冲区位置 = es:bx
-read_sector:
-	push bp
-	mov bp, sp
-	
-	sub esp, 2				;; 保存扇区数
-	mov byte [bp - 2], cl
-	push bx					;; 保存缓冲区偏移量
-
-	mov bl, [BPB_SecPerTrk]	;; 除数 18
-	div bl					;; ax/bl : al = 商 ah = 余数
-
-	inc ah					;; 起始扇区号
-	mov cl, ah				;; int 0x13 参数
-
-	mov dh, al				;; 磁头号
-	and dh, 1				;; int 0x13 参数
-
-	shr al, 1				;; 柱面号
-	mov ch, al				;; int 0x13 参数
-
-	mov dl, [BS_DrvNum]		;; int 0x13 参数 ：驱动器号
-
-	pop bx					;; int 0x13 参数 ：缓冲区偏移量
-
-go_on_reading:
-	mov ah, 2				;; int 0x13 参数 ：读方法
-	mov al, byte [bp - 2] 	;; int 0x13 参数 ：扇区个数
-	int 0x13
-	jc go_on_reading
-
-	add esp, 2
-	pop bp
-	
-	ret
-
-;; print_str
-;; ax = 字符串首字母位置
-;; cx = 字符串长度
-print_str:
-	push es
-	mov bp, ax
-	mov ax, ds
-	mov es, ax							;; es:bp 字符串
-	mov ax, 0x1301						;; int 0x10 打印字符串功能
-	mov bx, 0x000c						;; bh = 页码 bl = 颜色
-	mov byte dh, [print_line]			;; 行
-	mov dl, 0							;; 列
-	int 0x10
-
-	inc byte [print_line]
-
-	pop es
-	ret
-
-get_fat_entry:
-	push es
-	push bx
-	push ax
-
-	mov ax, BASE_KERNEL
-	sub ax, 0x100						;; 基地址在运算时会左移16位，此处为FAT空出来4k空间
-	mov es, ax							
-	mov bx, 0							;; es:bx = (BASE_KERNEL - 100):0
-	xor ax, ax
- 	mov ax, SEC_NO_FAT1
-	mov cl, 2
-	call read_sector
-
-	mov byte [flag_odd], 0
-	pop ax								;; ax = KERNEL.BIN 在 FAT 中的起始项号
-	mov bx, 3
-	mul bx
-	mov bx, 2
-	div bx								;; ax = 商 dx = 余数
-	cmp dx, 0
-	jz	fat_even
-	mov byte [flag_odd], 1
-
-fat_even:
-	mov bx, ax
-	mov ax, [es:bx]
-	cmp byte [flag_odd], 1
-	jnz flat_even_2
-	shr ax, 4
-
-flat_even_2:
-	and ax, 0x0fff
-	pop bx
-	pop es
-	ret
-
-;; 变量
-root_dir_num	dw	ROOT_DIR_SEC_NUM	;; 根目总录扇区数14
-sec_no			dw	0					;; 当前扇区号
-flag_odd		db	0					;; 是否为奇数
-print_line		db	3					;; 字符显示行
-
-kernel_file_name		db	"KERNEL  BIN"
-find_kernel				db	"find kernel"
-find_kernel_len				equ $ - find_kernel
-kernel_found			db	"kernel found"
-kernel_found_len			equ $ - kernel_found
-kernel_not_found		db	"kernel not found"
-kernel_not_found_len		equ $ - kernel_not_found
-loading					db 	"loading"
-loading_len					equ $ - loading 
