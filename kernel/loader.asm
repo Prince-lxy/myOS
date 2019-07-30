@@ -2,11 +2,25 @@ org 0x90100
 	jmp start
 	nop
 
+%include "pm.inc"
 %include "fat12.inc"
 
 BASE_STACK			equ		0x100		;; 堆栈基地址
 BASE_KERNEL			equ		0x8000		;; KERNEL.BIN 基地址
 OFFSET_KERNEL		equ		0x100		;; KERNEL.BIN 偏移量
+
+;; GDT
+GDT:				DESCRIPTOR 0, 0, 0
+DESC_PROTECT_MODE:	DESCRIPTOR 0, pm_len - 1, DA_C + DA_32
+DESC_VIDEO:			DESCRIPTOR 0xb8000, 0xffff, DA_DRW
+
+GDT_LEN	equ $ - GDT
+gdt_ptr	dw GDT_LEN
+		dd GDT
+
+;; 选择子
+SELECTOR_PROTECT_MODE	equ	DESC_PROTECT_MODE - GDT
+SELECTOR_VIDEO			equ DESC_VIDEO - GDT
 
 ;; 变量
 root_dir_num	dw	ROOT_DIR_SEC_NUM	;; 根目总录扇区数14
@@ -16,13 +30,16 @@ print_line		db	3					;; 字符显示行
 
 kernel_file_name		db	"KERNEL  BIN"
 find_kernel				db	"find kernel"
-find_kernel_len				equ $ - find_kernel
+find_kernel_len			equ $ - find_kernel
 kernel_found			db	"kernel found"
-kernel_found_len			equ $ - kernel_found
+kernel_found_len		equ $ - kernel_found
 kernel_not_found		db	"kernel not found"
-kernel_not_found_len		equ $ - kernel_not_found
+kernel_not_found_len	equ $ - kernel_not_found
 loading					db 	"loading"
-loading_len					equ $ - loading 
+loading_len				equ $ - loading 
+
+[SECTION .s16]
+[BITS 16]
 
 ;; read_sector
 ;; 起始扇区 = ax
@@ -245,4 +262,47 @@ go_on_loading_file:
 	jmp go_on_loading_file
 
 file_loaded:
-	jmp BASE_KERNEL:OFFSET_KERNEL
+	;; 初始化 protect_mode 代码段描述符
+	xor eax, eax
+	add eax, protect_mode
+	mov word [DESC_PROTECT_MODE + 2], ax
+	shr eax, 16
+	mov byte [DESC_PROTECT_MODE + 4], al
+	mov byte [DESC_PROTECT_MODE + 7], ah
+
+	;; 加载 gdtr
+	lgdt [gdt_ptr]
+
+	;; 关闭中断
+	cli
+
+	;; 打开 A20
+	in al, 0x92
+	or al, 0x02
+	out 0x92, al
+
+	;; 切换到保护模式
+	mov eax, cr0
+	or  eax, 1
+	mov cr0, eax
+
+	;; 进入保护模式
+	jmp dword SELECTOR_PROTECT_MODE:0
+
+	;jmp BASE_KERNEL:OFFSET_KERNEL
+
+[SECTION .s32]
+[BITS 32]
+
+;; 保护模式
+protect_mode:
+	;; 打印 "P"
+	mov ax, SELECTOR_VIDEO
+	mov gs, ax
+	mov edi, (80 * 0 + 39) * 2
+	mov ah, 0x0f
+	mov al, 'P'
+	mov [gs:edi], ax
+	jmp $
+
+pm_len	equ	$ - protect_mode	

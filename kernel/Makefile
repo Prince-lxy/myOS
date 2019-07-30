@@ -3,7 +3,7 @@ all: boot.bin LOADER.BIN KERNEL.BIN image
 boot.bin: boot.asm fat12.inc
 	nasm -o $@ $<
 
-LOADER.BIN: loader.asm fat12.inc
+LOADER.BIN: loader.asm fat12.inc pm.inc
 	nasm -o $@ $<
 
 KERNEL.BIN: kernel.asm
