@@ -23,6 +23,9 @@
 ;; 32-bit segment
 %define	DA_32	0x4000
 
+;; Segment limit unit
+%define DA_LIMIT_4K 0x8000
+
 ;; Descriptor privilege
 %define	DA_DPL0	0x00		;; DPL = 0
 %define	DA_DPL1	0x20		;; DPL = 1
@@ -33,10 +36,10 @@
 %define	DA_DR	0x90		;; Read-Only
 %define DA_DRW	0x92		;; Read/Write
 %define DA_DRWA	0x93		;; Read/Write, accessed
-%define DA_C	0x98		;; Execute-Only
-%define	DA_CR	0x9A		;; Execute/Read
-%define DA_CCO	0x9C		;; Execute-Only, conforming
-%define	DA_CCOR	0x9E		;; Execute/Read-Only, conforming
+%define DA_X	0x98		;; Execute-Only
+%define	DA_XR	0x9A		;; Execute/Read
+%define DA_XCO	0x9C		;; Execute-Only, conforming
+%define	DA_XCOR	0x9E		;; Execute/Read-Only, conforming
 
 ;; GDT System-Segment and Gate-Descriptor Types
 %define	DA_LDT		0x82		;; LDT
@@ -57,3 +60,16 @@
 %define	SA_RPL3	3
 %define	SA_TIG	0
 %define	SA_TIL	4
+
+;; gdtr
+;;
+;; |byte 7|byte 6|byte 5|byte 4|byte 3|byte 2|byte 1|byte 0|
+;; |                   Base                  |    Limit    |
+
+;; cr0
+;;
+;; | 7| 6| 5| 4| 3| 2| 1| 0|| 7| 6| 5| 4| 3| 2| 1| 0|
+;; |PG|CD|NW|                              |AM|  |WP|
+;;
+;; | 7| 6| 5| 4| 3| 2| 1| 0|| 7| 6| 5| 4| 3| 2| 1| 0|
+;; |                              |NE|ET|TS|EM|MP|PE|
