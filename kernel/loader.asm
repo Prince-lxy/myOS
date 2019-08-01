@@ -1,13 +1,9 @@
-org 0x90100
-	jmp start
-	nop
-
 %include "pm.inc"
 %include "fat12.inc"
 
-BASE_STACK			equ		0x100		;; 堆栈基地址
-BASE_KERNEL			equ		0x8000		;; KERNEL.BIN 基地址
-OFFSET_KERNEL		equ		0x100		;; KERNEL.BIN 偏移量
+org 0x90100
+	jmp start
+	nop
 
 ;; GDT
 GDT:				DESCRIPTOR 0, 0, 0
@@ -53,7 +49,7 @@ read_sector:
 	mov byte [bp - 2], cl
 	push bx					;; 保存缓冲区偏移量
 
-	mov bl, [BPB_SecPerTrk]	;; 除数 18
+	mov bl, SEC_PER_TRK		;; 除数 18
 	div bl					;; ax/bl : al = 商 ah = 余数
 
 	inc ah					;; 起始扇区号
@@ -65,7 +61,7 @@ read_sector:
 	shr al, 1				;; 柱面号
 	mov ch, al				;; int 0x13 参数
 
-	mov dl, [BS_DrvNum]		;; int 0x13 参数 ：驱动器号
+	mov dl, DRV_NUM			;; int 0x13 参数 ：驱动器号
 
 	pop bx					;; int 0x13 参数 ：缓冲区偏移量
 
@@ -142,7 +138,7 @@ start:
     mov ds, ax
     mov es, ax
     mov ss, ax
-    mov sp, BASE_STACK
+    mov sp, BASE_STACK_LOADER
 
 	;; 打印 "Booting & find kernel"
 	mov ax, find_kernel
@@ -258,7 +254,7 @@ go_on_loading_file:
 	push ax
 	add ax, ROOT_DIR_SEC_NUM
 	add ax, DELTA_SEC_NUM
-	add bx, [BPB_BytsPerSec]
+	add bx, BYTES_PER_SEC
 	jmp go_on_loading_file
 
 file_loaded:
