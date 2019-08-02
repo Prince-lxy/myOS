@@ -13,17 +13,31 @@ DESC_PROTECT_MODE:	DESCRIPTOR 0, protect_mode_len, DA_X + DA_32
 DESC_DATA_PM:		DESCRIPTOR 0, data32_len, DA_DRW
 DESC_STACK_PM:		DESCRIPTOR (BASE_LOADER * 16), BASE_STACK_LOADER, DA_DRWA + DA_32
 DESC_VIDEO:			DESCRIPTOR 0xb8000, 0xffff, DA_DRW
+DESC_LDT:			DESCRIPTOR 0, LDT_LEN, DA_LDT
 
 GDT_LEN	equ $ - GDT
 gdt_ptr	dw GDT_LEN
 		dd GDT
 
-;; 选择子
+;; GDT 选择子
 SELECTOR_DATA_RM		equ	DESC_DATA_RM - GDT
 SELECTOR_PROTECT_MODE	equ	DESC_PROTECT_MODE - GDT
 SELECTOR_DATA_PM		equ DESC_DATA_PM - GDT
 SELECTOR_STACK_PM		equ DESC_STACK_PM - GDT
 SELECTOR_VIDEO			equ DESC_VIDEO - GDT
+SELECTOR_LDT			equ DESC_LDT - GDT
+
+[SECTION .ldt]
+;; ldt
+LDT:
+DESC_LDT_CODE1:	DESCRIPTOR 0, ldt_code1_len, DA_X + DA_32
+
+LDT_LEN	equ $ - LDT
+ldt_ptr dw LDT_LEN
+		dd LDT
+
+;; LDT 选择子
+SELECTOR_LDT_TEST		equ DESC_LDT_CODE1 - LDT + SA_TIL
 
 [SECTION .s16]
 [BITS 16]
@@ -303,8 +317,25 @@ file_loaded:
 protect_mode:
 pm_print_line		dd 0x00000006
 join_pm				db "join protect mode now.", 0
-ok					db "OK!", 0
+print_ok			db "OK!", 0
+join_ldt_code1		db "join ldt code 1 now -->", 0
+exit_ldt_code1		db "exit ldt code 1 now <--", 0
 data32_len			equ $ - $$
+
+;; ldt code 1
+ldt_code1:
+	;; 进入函数
+	mov esi, (join_ldt_code1 - protect_mode)
+	call print_32
+
+	;; 离开函数
+	mov esi, (exit_ldt_code1 - protect_mode)
+	call print_32
+
+	;; 返回保护模式主函数
+	jmp dword SELECTOR_PROTECT_MODE:(ok - protect_mode)
+
+ldt_code1_len	equ protect_mode_start - ldt_code1
 
 ;; print_32
 ;; esi = 字符串首地址
@@ -350,6 +381,24 @@ protect_mode_start:
 	mov byte [DESC_DATA_PM + 4], al
 	mov byte [DESC_DATA_PM + 7], ah
 
+	;; 加载 ldtr
+	xor eax, eax
+	mov eax, LDT
+	mov word [DESC_LDT + 2], ax
+	shr eax, 16
+	mov byte [DESC_LDT + 4], al
+	mov byte [DESC_LDT + 7], ah
+
+	mov ax, SELECTOR_LDT
+	lldt ax
+
+	xor eax, eax
+	mov eax, ldt_code1
+	mov word [DESC_LDT_CODE1 + 2], ax
+	shr eax, 16
+	mov byte [DESC_LDT_CODE1 + 4], al
+	mov byte [DESC_LDT_CODE1 + 7], ah
+
 	mov ax, SELECTOR_DATA_PM
 	mov ds, ax					;; ds = 数据段
 	mov ax, SELECTOR_VIDEO
@@ -362,8 +411,11 @@ protect_mode_start:
 	mov esi, (join_pm - protect_mode)
 	call print_32
 
+	jmp SELECTOR_LDT_TEST:0
+
 	;; 打印 ok!
-	mov esi, (ok - protect_mode)
+ok:
+	mov esi, (print_ok - protect_mode)
 	call print_32
 
 	jmp $
