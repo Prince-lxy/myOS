@@ -5,9 +5,13 @@ org 0x90100
 	jmp start
 	nop
 
+[SECTION .gdt]
 ;; GDT
 GDT:				DESCRIPTOR 0, 0, 0
-DESC_PROTECT_MODE:	DESCRIPTOR 0, pm_len - 1, DA_X + DA_32
+DESC_DATA_RM:		DESCRIPTOR 0, 0xffff, DA_DRW + DA_LIMIT_4K
+DESC_PROTECT_MODE:	DESCRIPTOR 0, protect_mode_len, DA_X + DA_32
+DESC_DATA_PM:		DESCRIPTOR 0, data32_len, DA_DRW
+DESC_STACK_PM:		DESCRIPTOR (BASE_LOADER * 16), BASE_STACK_LOADER, DA_DRWA + DA_32
 DESC_VIDEO:			DESCRIPTOR 0xb8000, 0xffff, DA_DRW
 
 GDT_LEN	equ $ - GDT
@@ -15,10 +19,16 @@ gdt_ptr	dw GDT_LEN
 		dd GDT
 
 ;; 选择子
+SELECTOR_DATA_RM		equ	DESC_DATA_RM - GDT
 SELECTOR_PROTECT_MODE	equ	DESC_PROTECT_MODE - GDT
+SELECTOR_DATA_PM		equ DESC_DATA_PM - GDT
+SELECTOR_STACK_PM		equ DESC_STACK_PM - GDT
 SELECTOR_VIDEO			equ DESC_VIDEO - GDT
 
-;; 变量
+[SECTION .s16]
+[BITS 16]
+
+;; 实模式变量
 root_dir_num	dw	ROOT_DIR_SEC_NUM	;; 根目总录扇区数14
 sec_no			dw	0					;; 当前扇区号
 flag_odd		db	0					;; 是否为奇数
@@ -32,10 +42,7 @@ kernel_found_len		equ $ - kernel_found
 kernel_not_found		db	"kernel not found"
 kernel_not_found_len	equ $ - kernel_not_found
 loading					db 	"loading"
-loading_len				equ $ - loading 
-
-[SECTION .s16]
-[BITS 16]
+loading_len				equ $ - loading
 
 ;; read_sector
 ;; 起始扇区 = ax
@@ -283,22 +290,82 @@ file_loaded:
 	mov cr0, eax
 
 	;; 进入保护模式
-	jmp dword SELECTOR_PROTECT_MODE:0
+	jmp dword SELECTOR_PROTECT_MODE:(protect_mode_start - protect_mode)
 
 	;jmp BASE_KERNEL:OFFSET_KERNEL
+
+;; ============================== 32 位保护模式 ==============================
 
 [SECTION .s32]
 [BITS 32]
 
-;; 保护模式
+;; 保护模式变量
 protect_mode:
-	;; 打印 "P"
-	mov ax, SELECTOR_VIDEO
-	mov gs, ax
-	mov edi, (80 * 0 + 39) * 2
-	mov ah, 0x0f
-	mov al, 'P'
+pm_print_line		dd 0x00000006
+join_pm				db "join protect mode now.", 0
+ok					db "OK!", 0
+data32_len			equ $ - $$
+
+;; print_32
+;; esi = 字符串首地址
+print_32:
+    push eax
+	push ebx
+	push ecx
+	xor eax, eax
+	xor ebx, ebx
+	mov word ax, [pm_print_line - protect_mode]
+	mov bx, 160
+	mul bx
+	mov edi, eax
+	mov ah, 0x0c
+	xor ecx, ecx
+.loop:
+	mov al, [ds:esi + ecx]
 	mov [gs:edi], ax
+	add edi, 2
+	inc ecx
+	cmp al, 0
+	jz	.end
+	jnc	.loop
+
+.end:
+	inc dword [pm_print_line - protect_mode]
+
+	pop ecx
+	pop ebx
+	pop eax
+	ret
+
+;; 保护模式开始
+protect_mode_start:
+	mov ax, SELECTOR_DATA_RM
+	mov ds, ax
+
+	;; 初始化段描述符
+	xor eax, eax
+	mov eax, protect_mode
+	mov word [DESC_DATA_PM + 2], ax
+	shr eax, 16
+	mov byte [DESC_DATA_PM + 4], al
+	mov byte [DESC_DATA_PM + 7], ah
+
+	mov ax, SELECTOR_DATA_PM
+	mov ds, ax					;; ds = 数据段
+	mov ax, SELECTOR_VIDEO
+	mov gs, ax					;; gs = 显存段
+	mov ax, SELECTOR_STACK_PM
+	mov ss, ax					;; ss = 堆栈段
+	mov esp, BASE_STACK_LOADER
+
+	;; 打印 join to protect mode
+	mov esi, (join_pm - protect_mode)
+	call print_32
+
+	;; 打印 ok!
+	mov esi, (ok - protect_mode)
+	call print_32
+
 	jmp $
 
-pm_len	equ	$ - protect_mode	
+protect_mode_len	equ	$ - protect_mode
