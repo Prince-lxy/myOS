@@ -333,7 +333,8 @@ ldt_code1:
 	call print_32
 
 	;; 返回保护模式主函数
-	jmp dword SELECTOR_PROTECT_MODE:(ok - protect_mode)
+	;jmp dword SELECTOR_PROTECT_MODE:(ok - protect_mode)
+	retf
 
 ldt_code1_len	equ protect_mode_start - ldt_code1
 
@@ -411,7 +412,8 @@ protect_mode_start:
 	mov esi, (join_pm - protect_mode)
 	call print_32
 
-	jmp SELECTOR_LDT_TEST:0
+	;jmp SELECTOR_LDT_TEST:0
+	call SELECTOR_LDT_TEST:0
 
 	;; 打印 ok!
 ok:
