@@ -73,3 +73,12 @@
 ;;
 ;; | 7| 6| 5| 4| 3| 2| 1| 0|| 7| 6| 5| 4| 3| 2| 1| 0|
 ;; |                              |NE|ET|TS|EM|MP|PE|
+
+;; Gate
+;;
+;; |byte 7|byte 6|byte 5|byte 4|byte 3|byte 2|byte 1|byte 0|
+;; |    Offs H   |     Attr    |   Selector  |   Offs L    |
+;;
+;; |              Attr              |
+;; |7|6|5|4|3|2|1|0||7|6|5|4|3|2|1|0|
+;; |P|DPL|S| TYPE  ||0|0|0|Param num|
