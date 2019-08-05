@@ -37,7 +37,7 @@ ldt_ptr		dw	LDT_LEN
 		dd	LDT
 
 ;; LDT 选择子
-SELECTOR_LDT_TEST	equ	DESC_LDT_CODE1 - LDT + SA_TIL
+SELECTOR_LDT_CODE1	equ	DESC_LDT_CODE1 - LDT + SA_TIL
 
 [SECTION .s16]
 [BITS 16]
@@ -412,8 +412,8 @@ protect_mode_start:
 	mov esi, (join_pm - protect_mode)
 	call print_32
 
-	;jmp SELECTOR_LDT_TEST:0
-	call SELECTOR_LDT_TEST:0
+	;jmp SELECTOR_LDT_CODE1:0
+	call SELECTOR_LDT_CODE1:0
 
 	;; 打印 ok!
 ok:
