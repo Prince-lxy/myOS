@@ -5,16 +5,16 @@ org 0x7c00
 
 [SECTION .gdt]
 ;; GDT
-GDT:				DESCRIPTOR 0, 0, 0
-DESC_PROTECT_MODE:	DESCRIPTOR 0, protectModeLen - 1, DA_C + DA_32
-DESC_VIDEO:			DESCRIPTOR 0xb8000, 0xffff, DA_DRW
+GDT:			DESCRIPTOR	0, 0, 0
+DESC_PROTECT_MODE:	DESCRIPTOR	0, protectModeLen - 1, DA_C + DA_32
+DESC_VIDEO:		DESCRIPTOR	0xb8000, 0xffff, DA_DRW
 
-gdtLen	equ $ - GDT
-gdtPtr	dw gdtLen
+gdtLen		equ	$ - GDT
+gdtPtr		dw	gdtLen
 		dd 0
 
 ;; Selector
-selectorProtectMode	equ DESC_PROTECT_MODE - GDT
+selectorProtectMode	equ	DESC_PROTECT_MODE - GDT
 selectorVideo		equ	DESC_VIDEO - GDT
 
 [SECTION .s16]
@@ -48,13 +48,13 @@ BEGIN:
 	cli
 
 ;; 打开A20
-	in 	al, 0x92
-	or 	al, 0x02
-	out	0x92, al
+	in al, 0x92
+	or al, 0x02
+	out 0x92, al
 
 ;; 切换到保护模式
 	mov eax, cr0
-	or	eax, 1
+	or eax, 1
 	mov cr0, eax
 
 ;; 进入保护模式
@@ -82,9 +82,9 @@ PROTECT_MODE:
 .end:
 	jmp $
 
-protectModeLen equ ($ - PROTECT_MODE)
-protectMesg: db "welcome to protect mode!"
-endPmsg: db 0
+protectModeLen	equ	($ - PROTECT_MODE)
+protectMesg:	db	 "welcome to protect mode!"
+endPmsg:	db	0
 
 times 510 - 0xba db 0
 dw 0xaa55

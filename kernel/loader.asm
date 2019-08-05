@@ -7,56 +7,56 @@ org 0x90100
 
 [SECTION .gdt]
 ;; GDT
-GDT:				DESCRIPTOR 0, 0, 0
-DESC_DATA_RM:		DESCRIPTOR 0, 0xffff, DA_DRW + DA_LIMIT_4K
-DESC_PROTECT_MODE:	DESCRIPTOR 0, protect_mode_len, DA_X + DA_32
-DESC_DATA_PM:		DESCRIPTOR 0, data32_len, DA_DRW
-DESC_STACK_PM:		DESCRIPTOR (BASE_LOADER * 16), BASE_STACK_LOADER, DA_DRWA + DA_32
-DESC_VIDEO:			DESCRIPTOR 0xb8000, 0xffff, DA_DRW
-DESC_LDT:			DESCRIPTOR 0, LDT_LEN, DA_LDT
+GDT:			DESCRIPTOR	0, 0, 0
+DESC_DATA_RM:		DESCRIPTOR	0, 0xffff, DA_DRW + DA_LIMIT_4K
+DESC_PROTECT_MODE:	DESCRIPTOR	0, protect_mode_len, DA_X + DA_32
+DESC_DATA_PM:		DESCRIPTOR	0, data32_len, DA_DRW
+DESC_STACK_PM:		DESCRIPTOR	(BASE_LOADER * 16), BASE_STACK_LOADER, DA_DRWA + DA_32
+DESC_VIDEO:		DESCRIPTOR	0xb8000, 0xffff, DA_DRW
+DESC_LDT:		DESCRIPTOR	0, LDT_LEN, DA_LDT
 
-GDT_LEN	equ $ - GDT
-gdt_ptr	dw GDT_LEN
-		dd GDT
+GDT_LEN		equ	$ - GDT
+gdt_ptr		dw	GDT_LEN
+		dd	GDT
 
 ;; GDT 选择子
-SELECTOR_DATA_RM		equ	DESC_DATA_RM - GDT
+SELECTOR_DATA_RM	equ	DESC_DATA_RM - GDT
 SELECTOR_PROTECT_MODE	equ	DESC_PROTECT_MODE - GDT
-SELECTOR_DATA_PM		equ DESC_DATA_PM - GDT
-SELECTOR_STACK_PM		equ DESC_STACK_PM - GDT
-SELECTOR_VIDEO			equ DESC_VIDEO - GDT
-SELECTOR_LDT			equ DESC_LDT - GDT
+SELECTOR_DATA_PM	equ	DESC_DATA_PM - GDT
+SELECTOR_STACK_PM	equ	DESC_STACK_PM - GDT
+SELECTOR_VIDEO		equ	DESC_VIDEO - GDT
+SELECTOR_LDT		equ	DESC_LDT - GDT
 
 [SECTION .ldt]
 ;; ldt
 LDT:
-DESC_LDT_CODE1:	DESCRIPTOR 0, ldt_code1_len, DA_X + DA_32
+DESC_LDT_CODE1:		DESCRIPTOR	0, ldt_code1_len, DA_X + DA_32
 
-LDT_LEN	equ $ - LDT
-ldt_ptr dw LDT_LEN
-		dd LDT
+LDT_LEN		equ	$ - LDT
+ldt_ptr		dw	LDT_LEN
+		dd	LDT
 
 ;; LDT 选择子
-SELECTOR_LDT_TEST		equ DESC_LDT_CODE1 - LDT + SA_TIL
+SELECTOR_LDT_TEST	equ	DESC_LDT_CODE1 - LDT + SA_TIL
 
 [SECTION .s16]
 [BITS 16]
 
 ;; 实模式变量
 root_dir_num	dw	ROOT_DIR_SEC_NUM	;; 根目总录扇区数14
-sec_no			dw	0					;; 当前扇区号
-flag_odd		db	0					;; 是否为奇数
-print_line		db	3					;; 字符显示行
+sec_no		dw	0			;; 当前扇区号
+flag_odd	db	0			;; 是否为奇数
+print_line	db	3			;; 字符显示行
 
 kernel_file_name		db	"KERNEL  BIN"
-find_kernel				db	"find kernel"
-find_kernel_len			equ $ - find_kernel
+find_kernel			db	"find kernel"
+find_kernel_len			equ	$ - find_kernel
 kernel_found			db	"kernel found"
-kernel_found_len		equ $ - kernel_found
+kernel_found_len		equ	$ - kernel_found
 kernel_not_found		db	"kernel not found"
-kernel_not_found_len	equ $ - kernel_not_found
-loading					db 	"loading"
-loading_len				equ $ - loading
+kernel_not_found_len		equ	$ - kernel_not_found
+loading				db	"loading"
+loading_len			equ	$ - loading
 
 ;; read_sector
 ;; 起始扇区 = ax
@@ -66,29 +66,29 @@ read_sector:
 	push bp
 	mov bp, sp
 	
-	sub esp, 2				;; 保存扇区数
+	sub esp, 2			;; 保存扇区数
 	mov byte [bp - 2], cl
-	push bx					;; 保存缓冲区偏移量
+	push bx				;; 保存缓冲区偏移量
 
 	mov bl, SEC_PER_TRK		;; 除数 18
-	div bl					;; ax/bl : al = 商 ah = 余数
+	div bl				;; ax/bl : al = 商 ah = 余数
 
-	inc ah					;; 起始扇区号
-	mov cl, ah				;; int 0x13 参数
+	inc ah				;; 起始扇区号
+	mov cl, ah			;; int 0x13 参数
 
-	mov dh, al				;; 磁头号
-	and dh, 1				;; int 0x13 参数
+	mov dh, al			;; 磁头号
+	and dh, 1			;; int 0x13 参数
 
-	shr al, 1				;; 柱面号
-	mov ch, al				;; int 0x13 参数
+	shr al, 1			;; 柱面号
+	mov ch, al			;; int 0x13 参数
 
 	mov dl, DRV_NUM			;; int 0x13 参数 ：驱动器号
 
-	pop bx					;; int 0x13 参数 ：缓冲区偏移量
+	pop bx				;; int 0x13 参数 ：缓冲区偏移量
 
 go_on_reading:
-	mov ah, 2				;; int 0x13 参数 ：读方法
-	mov al, byte [bp - 2] 	;; int 0x13 参数 ：扇区个数
+	mov ah, 2			;; int 0x13 参数 ：读方法
+	mov al, byte [bp - 2] 		;; int 0x13 参数 ：扇区个数
 	int 0x13
 	jc go_on_reading
 
@@ -104,11 +104,11 @@ print_str:
 	push es
 	mov bp, ax
 	mov ax, ds
-	mov es, ax							;; es:bp 字符串
-	mov ax, 0x1301						;; int 0x10 打印字符串功能
-	mov bx, 0x000c						;; bh = 页码 bl = 颜色
-	mov byte dh, [print_line]			;; 行
-	mov dl, 0							;; 列
+	mov es, ax			;; es:bp 字符串
+	mov ax, 0x1301			;; int 0x10 打印字符串功能
+	mov bx, 0x000c			;; bh = 页码 bl = 颜色
+	mov byte dh, [print_line]	;; 行
+	mov dl, 0			;; 列
 	int 0x10
 
 	inc byte [print_line]
@@ -122,20 +122,20 @@ get_fat_entry:
 	push ax
 
 	mov ax, BASE_KERNEL
-	sub ax, 0x100						;; 基地址在运算时会左移16位，此处为FAT空出来4k空间
-	mov es, ax							
-	mov bx, 0							;; es:bx = (BASE_KERNEL - 100):0
+	sub ax, 0x100			;; 基地址在运算时会左移16位，此处为FAT空出来4k空间
+	mov es, ax
+	mov bx, 0			;; es:bx = (BASE_KERNEL - 100):0
 	xor ax, ax
  	mov ax, SEC_NO_FAT1
 	mov cl, 2
 	call read_sector
 
 	mov byte [flag_odd], 0
-	pop ax								;; ax = KERNEL.BIN 在 FAT 中的起始项号
+	pop ax				;; ax = KERNEL.BIN 在 FAT 中的起始项号
 	mov bx, 3
 	mul bx
 	mov bx, 2
-	div bx								;; ax = 商 dx = 余数
+	div bx				;; ax = 商 dx = 余数
 	cmp dx, 0
 	jz	fat_even
 	mov byte [flag_odd], 1
@@ -167,8 +167,8 @@ start:
 	call print_str
 
 	;; 重置软盘
-	xor ah, ah					;; int 0x13 功能0
-	xor dl, dl					;; dl = 驱动器号
+	xor ah, ah				;; int 0x13 功能0
+	xor dl, dl				;; dl = 驱动器号
 	int 0x13
 
 	;; 从根文件系统读取 KERNEL.BIN
@@ -184,25 +184,25 @@ search_in_root_dir:
 	mov bx, OFFSET_KERNEL			;; es:bx = KERNEL.BIN 缓冲区地址
 	mov ax, [sec_no]
 	mov cl, 1
-	call read_sector				;; 读取扇区号为 sec_no 的根目录分区到 es:bx
+	call read_sector			;; 读取扇区号为 sec_no 的根目录分区到 es:bx
 
 	mov si, kernel_file_name		;; ds:si = "KERNEL  BIN"
 	mov di, OFFSET_KERNEL			;; es:di = 0x9000 * 0x10 + 0x100 = 0x90100
 
 	cld
-	mov dx, 0x10					;; 一个根目录扇区包含文件描述符数目(512 / 32 = 16)
+	mov dx, 0x10				;; 一个根目录扇区包含文件描述符数目(512 / 32 = 16)
 search_file_name:
-	cmp dx, 0						;; 一个扇区内16个文件描述符都搜索完毕
+	cmp dx, 0				;; 一个扇区内16个文件描述符都搜索完毕
 	jz goto_next_root_dir_sector
 	dec dx
 	
-	mov cx, 11						;; 文件描述符前11个字节为文件名字符串
+	mov cx, 11				;; 文件描述符前11个字节为文件名字符串
 compare_file_name:
 	cmp cx, 0
 	jz filename_found
 	dec cx
 
-	lodsb							;; ds:si -> al; si++
+	lodsb					;; ds:si -> al; si++
 	cmp al, byte [es:di]
 	jz go_on
 	jmp different
@@ -212,8 +212,8 @@ go_on:
 	jmp compare_file_name
 
 different:
-	and di, 0xffe0					;; di 重新指向文件名字符串第一个字符
-	add di, 0x20					;; di 指向下一个文件描述符
+	and di, 0xffe0				;; di 重新指向文件名字符串第一个字符
+	add di, 0x20				;; di 指向下一个文件描述符
 	mov si, kernel_file_name		;; ds:si 归位
 	jmp search_file_name
 
@@ -240,8 +240,8 @@ filename_found:
 	call print_str
 
 	mov ax, ROOT_DIR_SEC_NUM
-	and di, 0xffe0					;; di 重新指向文件描述符第一个字节
-	add di, 0x1a					;; 指向文件描述符中起始 FAT 项
+	and di, 0xffe0				;; di 重新指向文件描述符第一个字节
+	add di, 0x1a				;; 指向文件描述符中起始 FAT 项
 	mov cx, word [es:di]			;; cx = KERNEL.BIN 在 FAT 表中 FAT 项号（2）
 	push cx
 
@@ -252,13 +252,13 @@ filename_found:
 	mov es, ax
 	mov bx, OFFSET_KERNEL			;; es:bx = KERNEL.BIN 缓冲区
 
-	mov ax, cx						;; ax = 扇区号
+	mov ax, cx				;; ax = 扇区号
 go_on_loading_file:
 	push ax
 	push bx
-	mov ah, 0x0e					;; ah = 0x0e int 0x10 打印字符功能
-	mov al, '.'						;; al = 字符
-	mov bx, 0x000f					;; bh = 页码 bl = 颜色
+	mov ah, 0x0e				;; ah = 0x0e int 0x10 打印字符功能
+	mov al, '.'				;; al = 字符
+	mov bx, 0x000f				;; bh = 页码 bl = 颜色
 	int 0x10
 	pop bx
 	pop ax
@@ -266,7 +266,7 @@ go_on_loading_file:
 	mov cl, 1
 	call read_sector
 
-	pop ax							;; 取出 KERNEL.BIN 在 FAT 中的项号
+	pop ax					;; 取出 KERNEL.BIN 在 FAT 中的项号
 	call get_fat_entry
 
 	cmp ax, 0x0fff
@@ -315,12 +315,12 @@ file_loaded:
 
 ;; 保护模式变量
 protect_mode:
-pm_print_line		dd 0x00000006
-join_pm				db "join protect mode now.", 0
-print_ok			db "OK!", 0
-join_ldt_code1		db "join ldt code 1 now -->", 0
-exit_ldt_code1		db "exit ldt code 1 now <--", 0
-data32_len			equ $ - $$
+pm_print_line		dd	0x00000006
+join_pm			db	"join protect mode now.", 0
+print_ok		db	"OK!", 0
+join_ldt_code1		db	"join ldt code 1 now -->", 0
+exit_ldt_code1		db	"exit ldt code 1 now <--", 0
+data32_len		equ	$ - $$
 
 ;; ldt code 1
 ldt_code1:
