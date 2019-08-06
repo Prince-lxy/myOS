@@ -14,6 +14,8 @@ DESC_DATA_PM:		DESCRIPTOR	0, data32_len, DA_DRW
 DESC_STACK_PM:		DESCRIPTOR	(BASE_LOADER * 16), BASE_STACK_LOADER, DA_DRWA + DA_32
 DESC_VIDEO:		DESCRIPTOR	0xb8000, 0xffff, DA_DRW
 DESC_LDT:		DESCRIPTOR	0, LDT_LEN, DA_LDT
+DESC_CGATE_CODE1:	DESCRIPTOR	0, cgate_code1_len, DA_X + DA_32
+CGATE_1:		GATE		SELECTOR_CGATE_CODE1, 0, 0, DA_386CGate + DA_DPL0
 
 GDT_LEN		equ	$ - GDT
 gdt_ptr		dw	GDT_LEN
@@ -26,6 +28,8 @@ SELECTOR_DATA_PM	equ	DESC_DATA_PM - GDT
 SELECTOR_STACK_PM	equ	DESC_STACK_PM - GDT
 SELECTOR_VIDEO		equ	DESC_VIDEO - GDT
 SELECTOR_LDT		equ	DESC_LDT - GDT
+SELECTOR_CGATE_CODE1	equ	DESC_CGATE_CODE1 - GDT
+SELECTOR_GATE_CALL	equ	CGATE_1 - GDT
 
 [SECTION .ldt]
 ;; ldt
@@ -320,7 +324,24 @@ join_pm			db	"join protect mode now.", 0
 print_ok		db	"OK!", 0
 join_ldt_code1		db	"join ldt code 1 now -->", 0
 exit_ldt_code1		db	"exit ldt code 1 now <--", 0
+join_cgate_code1	db	"join call gate code 1 now -->", 0
+exit_cgate_code1	db	"exit call gate code 1 now <--", 0
 data32_len		equ	$ - $$
+
+;; call gate code 1
+cgate_code1:
+	;; 进入函数
+	mov esi, (join_cgate_code1 - protect_mode)
+	call print_32
+
+	;; 离开函数
+	mov esi, (exit_cgate_code1 - protect_mode)
+	call print_32
+
+	;; 返回保护模式主函数
+	retf
+
+cgate_code1_len	equ protect_mode_start - cgate_code1
 
 ;; ldt code 1
 ldt_code1:
@@ -400,6 +421,13 @@ protect_mode_start:
 	mov byte [DESC_LDT_CODE1 + 4], al
 	mov byte [DESC_LDT_CODE1 + 7], ah
 
+	xor eax, eax
+	mov eax, cgate_code1
+	mov word [DESC_CGATE_CODE1 + 2], ax
+	shr eax, 16
+	mov byte [DESC_CGATE_CODE1 + 4], al
+	mov byte [DESC_CGATE_CODE1 + 7], ah
+
 	mov ax, SELECTOR_DATA_PM
 	mov ds, ax					;; ds = 数据段
 	mov ax, SELECTOR_VIDEO
@@ -414,6 +442,8 @@ protect_mode_start:
 
 	;jmp SELECTOR_LDT_CODE1:0
 	call SELECTOR_LDT_CODE1:0
+
+	call SELECTOR_GATE_CALL:0
 
 	;; 打印 ok!
 ok:

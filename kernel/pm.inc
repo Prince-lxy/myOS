@@ -82,3 +82,16 @@
 ;; |              Attr              |
 ;; |7|6|5|4|3|2|1|0||7|6|5|4|3|2|1|0|
 ;; |P|DPL|S| TYPE  ||0|0|0|Param num|
+;;
+;; usage: GATE Selector, Offset, PCount, Attr
+;; 	%1 Selector: dw 16bit
+;; 	%2 Offset: dd 32bit
+;;	%3 PCount: db 8bit
+;; 	%3 Attr: db 8bit
+
+%macro GATE 4
+	dw %2 & 0xffff
+	dw %1
+	dw (%3 & 0x1f) | ((%4 << 8) & 0xff00)
+	dw ((%2 >> 16) & 0xffff)
+%endmacro
