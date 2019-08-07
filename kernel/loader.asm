@@ -8,7 +8,6 @@ org 0x90100
 [SECTION .gdt]
 ;; GDT
 GDT:			DESCRIPTOR	0, 0, 0
-DESC_DATA_RM:		DESCRIPTOR	0, 0xffff, DA_DRW + DA_LIMIT_4K
 DESC_PROTECT_MODE:	DESCRIPTOR	0, protect_mode_len, DA_X + DA_32
 DESC_DATA_PM:		DESCRIPTOR	0, data32_len, DA_DRW
 DESC_STACK_PM:		DESCRIPTOR	(BASE_LOADER * 16), BASE_STACK_LOADER, DA_DRWA + DA_32
@@ -23,7 +22,6 @@ gdt_ptr		dw	GDT_LEN
 		dd	GDT
 
 ;; GDT 选择子
-SELECTOR_DATA_RM	equ	DESC_DATA_RM - GDT
 SELECTOR_PROTECT_MODE	equ	DESC_PROTECT_MODE - GDT
 SELECTOR_DATA_PM	equ	DESC_DATA_PM - GDT
 SELECTOR_STACK_PM	equ	DESC_STACK_PM - GDT
@@ -285,8 +283,18 @@ go_on_loading_file:
 	jmp go_on_loading_file
 
 file_loaded:
-	;; 初始化 protect_mode 代码段描述符
+	;; 初始化段描述符
 	INITDESC DESC_PROTECT_MODE, protect_mode
+
+	INITDESC DESC_DATA_PM, data32
+
+	INITDESC DESC_PRINT, print32
+
+	INITDESC DESC_LDT_CODE1, ldt_code1
+
+	INITDESC DESC_LDT, LDT
+
+	INITDESC DESC_CGATE_CODE1, cgate_code1
 
 	;; 加载 gdtr
 	lgdt [gdt_ptr]
@@ -390,24 +398,6 @@ print32_len	equ	$ - print32
 
 ;; 保护模式开始
 protect_mode:
-	mov ax, SELECTOR_DATA_RM
-	mov ds, ax
-
-	;; 初始化段描述符
-	INITDESC DESC_DATA_PM, data32
-
-	INITDESC DESC_PRINT, print32
-
-	INITDESC DESC_LDT_CODE1, ldt_code1
-
-	INITDESC DESC_CGATE_CODE1, cgate_code1
-
-	INITDESC DESC_LDT, LDT
-
-	;; 加载 ldtr
-	mov ax, SELECTOR_LDT
-	lldt ax
-
 	mov ax, SELECTOR_DATA_PM
 	mov ds, ax					;; ds = 数据段
 	mov ax, SELECTOR_VIDEO
@@ -419,6 +409,10 @@ protect_mode:
 	;; 打印 join to protect mode
 	mov esi, (join_pm - data32)
 	call SELECTOR_PRINT:0
+
+	;; 加载 ldtr
+	mov ax, SELECTOR_LDT
+	lldt ax
 
 	;jmp SELECTOR_LDT_CODE1:0
 	call SELECTOR_LDT_CODE1:0
