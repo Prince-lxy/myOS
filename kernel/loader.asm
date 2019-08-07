@@ -13,6 +13,7 @@ DESC_PROTECT_MODE:	DESCRIPTOR	0, protect_mode_len, DA_X + DA_32
 DESC_DATA_PM:		DESCRIPTOR	0, data32_len, DA_DRW
 DESC_STACK_PM:		DESCRIPTOR	(BASE_LOADER * 16), BASE_STACK_LOADER, DA_DRWA + DA_32
 DESC_VIDEO:		DESCRIPTOR	0xb8000, 0xffff, DA_DRW
+DESC_PRINT:		DESCRIPTOR	0, print32_len, DA_X + DA_32
 DESC_LDT:		DESCRIPTOR	0, LDT_LEN, DA_LDT
 DESC_CGATE_CODE1:	DESCRIPTOR	0, cgate_code1_len, DA_X + DA_32
 CGATE_1:		GATE		SELECTOR_CGATE_CODE1, 0, 0, DA_386CGate + DA_DPL0
@@ -27,6 +28,7 @@ SELECTOR_PROTECT_MODE	equ	DESC_PROTECT_MODE - GDT
 SELECTOR_DATA_PM	equ	DESC_DATA_PM - GDT
 SELECTOR_STACK_PM	equ	DESC_STACK_PM - GDT
 SELECTOR_VIDEO		equ	DESC_VIDEO - GDT
+SELECTOR_PRINT		equ	DESC_PRINT - GDT
 SELECTOR_LDT		equ	DESC_LDT - GDT
 SELECTOR_CGATE_CODE1	equ	DESC_CGATE_CODE1 - GDT
 SELECTOR_GATE_CALL	equ	CGATE_1 - GDT
@@ -308,7 +310,7 @@ file_loaded:
 	mov cr0, eax
 
 	;; 进入保护模式
-	jmp dword SELECTOR_PROTECT_MODE:(protect_mode_start - protect_mode)
+	jmp dword SELECTOR_PROTECT_MODE:0
 
 	;jmp BASE_KERNEL:OFFSET_KERNEL
 
@@ -318,7 +320,7 @@ file_loaded:
 [BITS 32]
 
 ;; 保护模式变量
-protect_mode:
+data32:
 pm_print_line		dd	0x00000006
 join_pm			db	"join protect mode now.", 0
 print_ok		db	"OK!", 0
@@ -331,43 +333,43 @@ data32_len		equ	$ - $$
 ;; call gate code 1
 cgate_code1:
 	;; 进入函数
-	mov esi, (join_cgate_code1 - protect_mode)
-	call print_32
+	mov esi, (join_cgate_code1 - data32)
+	call SELECTOR_PRINT:0
 
 	;; 离开函数
-	mov esi, (exit_cgate_code1 - protect_mode)
-	call print_32
+	mov esi, (exit_cgate_code1 - data32)
+	call SELECTOR_PRINT:0
 
 	;; 返回保护模式主函数
 	retf
 
-cgate_code1_len	equ protect_mode_start - cgate_code1
+cgate_code1_len	equ $ - cgate_code1
 
 ;; ldt code 1
 ldt_code1:
 	;; 进入函数
-	mov esi, (join_ldt_code1 - protect_mode)
-	call print_32
+	mov esi, (join_ldt_code1 - data32)
+	call SELECTOR_PRINT:0
 
 	;; 离开函数
-	mov esi, (exit_ldt_code1 - protect_mode)
-	call print_32
+	mov esi, (exit_ldt_code1 - data32)
+	call SELECTOR_PRINT:0
 
 	;; 返回保护模式主函数
-	;jmp dword SELECTOR_PROTECT_MODE:(ok - protect_mode)
+	;jmp dword SELECTOR_PROTECT_MODE:(ok - data32)
 	retf
 
-ldt_code1_len	equ protect_mode_start - ldt_code1
+ldt_code1_len	equ $ - ldt_code1
 
-;; print_32
+;; print32
 ;; esi = 字符串首地址
-print_32:
-    push eax
+print32:
+	push eax
 	push ebx
 	push ecx
 	xor eax, eax
 	xor ebx, ebx
-	mov word ax, [pm_print_line - protect_mode]
+	mov word ax, [pm_print_line - data32]
 	mov bx, 160
 	mul bx
 	mov edi, eax
@@ -383,25 +385,33 @@ print_32:
 	jnc	.loop
 
 .end:
-	inc dword [pm_print_line - protect_mode]
+	inc dword [pm_print_line - data32]
 
 	pop ecx
 	pop ebx
 	pop eax
-	ret
+	retf
+print32_len	equ	$ - print32
 
 ;; 保护模式开始
-protect_mode_start:
+protect_mode:
 	mov ax, SELECTOR_DATA_RM
 	mov ds, ax
 
 	;; 初始化段描述符
 	xor eax, eax
-	mov eax, protect_mode
+	mov eax, data32
 	mov word [DESC_DATA_PM + 2], ax
 	shr eax, 16
 	mov byte [DESC_DATA_PM + 4], al
 	mov byte [DESC_DATA_PM + 7], ah
+
+	xor eax, eax
+	mov eax, print32
+	mov word [DESC_PRINT + 2], ax
+	shr eax, 16
+	mov byte [DESC_PRINT + 4], al
+	mov byte [DESC_PRINT + 7], ah
 
 	;; 加载 ldtr
 	xor eax, eax
@@ -437,8 +447,8 @@ protect_mode_start:
 	mov esp, BASE_STACK_LOADER
 
 	;; 打印 join to protect mode
-	mov esi, (join_pm - protect_mode)
-	call print_32
+	mov esi, (join_pm - data32)
+	call SELECTOR_PRINT:0
 
 	;jmp SELECTOR_LDT_CODE1:0
 	call SELECTOR_LDT_CODE1:0
@@ -447,8 +457,8 @@ protect_mode_start:
 
 	;; 打印 ok!
 ok:
-	mov esi, (print_ok - protect_mode)
-	call print_32
+	mov esi, (print_ok - data32)
+	call SELECTOR_PRINT:0
 
 	jmp $
 
