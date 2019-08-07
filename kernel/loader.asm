@@ -286,12 +286,7 @@ go_on_loading_file:
 
 file_loaded:
 	;; 初始化 protect_mode 代码段描述符
-	xor eax, eax
-	add eax, protect_mode
-	mov word [DESC_PROTECT_MODE + 2], ax
-	shr eax, 16
-	mov byte [DESC_PROTECT_MODE + 4], al
-	mov byte [DESC_PROTECT_MODE + 7], ah
+	INITDESC DESC_PROTECT_MODE, protect_mode
 
 	;; 加载 gdtr
 	lgdt [gdt_ptr]
@@ -399,44 +394,19 @@ protect_mode:
 	mov ds, ax
 
 	;; 初始化段描述符
-	xor eax, eax
-	mov eax, data32
-	mov word [DESC_DATA_PM + 2], ax
-	shr eax, 16
-	mov byte [DESC_DATA_PM + 4], al
-	mov byte [DESC_DATA_PM + 7], ah
+	INITDESC DESC_DATA_PM, data32
 
-	xor eax, eax
-	mov eax, print32
-	mov word [DESC_PRINT + 2], ax
-	shr eax, 16
-	mov byte [DESC_PRINT + 4], al
-	mov byte [DESC_PRINT + 7], ah
+	INITDESC DESC_PRINT, print32
+
+	INITDESC DESC_LDT_CODE1, ldt_code1
+
+	INITDESC DESC_CGATE_CODE1, cgate_code1
+
+	INITDESC DESC_LDT, LDT
 
 	;; 加载 ldtr
-	xor eax, eax
-	mov eax, LDT
-	mov word [DESC_LDT + 2], ax
-	shr eax, 16
-	mov byte [DESC_LDT + 4], al
-	mov byte [DESC_LDT + 7], ah
-
 	mov ax, SELECTOR_LDT
 	lldt ax
-
-	xor eax, eax
-	mov eax, ldt_code1
-	mov word [DESC_LDT_CODE1 + 2], ax
-	shr eax, 16
-	mov byte [DESC_LDT_CODE1 + 4], al
-	mov byte [DESC_LDT_CODE1 + 7], ah
-
-	xor eax, eax
-	mov eax, cgate_code1
-	mov word [DESC_CGATE_CODE1 + 2], ax
-	shr eax, 16
-	mov byte [DESC_CGATE_CODE1 + 4], al
-	mov byte [DESC_CGATE_CODE1 + 7], ah
 
 	mov ax, SELECTOR_DATA_PM
 	mov ds, ax					;; ds = 数据段

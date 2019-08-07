@@ -95,3 +95,12 @@
 	dw (%3 & 0x1f) | ((%4 << 8) & 0xff00)
 	dw ((%2 >> 16) & 0xffff)
 %endmacro
+
+%macro INITDESC 2
+	xor eax, eax
+	mov eax, %2
+	mov word [%1 + 2], ax
+	shr eax, 16
+	mov byte [%1 + 4], al
+	mov byte [%1 + 7], ah
+%endmacro
