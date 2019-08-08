@@ -9,13 +9,20 @@ org 0x90100
 ;; GDT
 GDT:			DESCRIPTOR	0, 0, 0
 DESC_PROTECT_MODE:	DESCRIPTOR	0, protect_mode_len, DA_X + DA_32
-DESC_DATA_PM:		DESCRIPTOR	0, data32_len, DA_DRW
+DESC_DATA_PM:		DESCRIPTOR	0, data32_len, DA_DRW + DA_DPL3
 DESC_STACK_PM:		DESCRIPTOR	(BASE_LOADER * 16), BASE_STACK_LOADER, DA_DRWA + DA_32
-DESC_VIDEO:		DESCRIPTOR	0xb8000, 0xffff, DA_DRW
+DESC_VIDEO:		DESCRIPTOR	0xb8000, 0xffff, DA_DRW + DA_DPL3
 DESC_PRINT:		DESCRIPTOR	0, print32_len, DA_X + DA_32
 DESC_LDT:		DESCRIPTOR	0, LDT_LEN, DA_LDT
 DESC_CGATE_CODE1:	DESCRIPTOR	0, cgate_code1_len, DA_X + DA_32
-CGATE_1:		GATE		SELECTOR_CGATE_CODE1, 0, 0, DA_386CGate + DA_DPL0
+DESC_LEVEL3_STACK:	DESCRIPTOR	0, 512, DA_DRWA + DA_32 + DA_DPL3
+DESC_LEVEL3_CODE1:	DESCRIPTOR	0, level3_code1_len, DA_X + DA_32 + DA_DPL3
+DESC_TSS:		DESCRIPTOR	0, TSS_len, DA_386TSS
+DESC_OK:		DESCRIPTOR	0, ok_len, DA_X + DA_32
+
+CGATE_1:		GATE		SELECTOR_CGATE_CODE1, 0, 0, DA_386CGate
+CGATE_2:		GATE		SELECTOR_PRINT, 0, 0, DA_386CGate + DA_DPL3
+CGATE_3:		GATE		SELECTOR_OK, 0, 0, DA_386CGate + DA_DPL3
 
 GDT_LEN		equ	$ - GDT
 gdt_ptr		dw	GDT_LEN
@@ -29,7 +36,14 @@ SELECTOR_VIDEO		equ	DESC_VIDEO - GDT
 SELECTOR_PRINT		equ	DESC_PRINT - GDT
 SELECTOR_LDT		equ	DESC_LDT - GDT
 SELECTOR_CGATE_CODE1	equ	DESC_CGATE_CODE1 - GDT
-SELECTOR_GATE_CALL	equ	CGATE_1 - GDT
+SELECTOR_LEVEL3_STACK	equ	DESC_LEVEL3_STACK - GDT + SA_RPL3
+SELECTOR_LEVEL3_CODE1	equ	DESC_LEVEL3_CODE1 - GDT + SA_RPL3
+SELECTOR_TSS:		equ	DESC_TSS - GDT
+SELECTOR_OK:		equ	DESC_OK - GDT
+
+SELECTOR_GATE_CALL1	equ	CGATE_1 - GDT
+SELECTOR_GATE_CALL2	equ	CGATE_2 - GDT + SA_RPL3
+SELECTOR_GATE_CALL3	equ	CGATE_3 - GDT + SA_RPL3
 
 [SECTION .ldt]
 ;; ldt
@@ -296,6 +310,14 @@ file_loaded:
 
 	INITDESC DESC_CGATE_CODE1, cgate_code1
 
+	INITDESC DESC_LEVEL3_STACK, level3_stack
+
+	INITDESC DESC_LEVEL3_CODE1, level3_code1
+
+	INITDESC DESC_TSS, TSS
+
+	INITDESC DESC_OK, ok
+
 	;; 加载 gdtr
 	lgdt [gdt_ptr]
 
@@ -331,7 +353,56 @@ join_ldt_code1		db	"join ldt code 1 now -->", 0
 exit_ldt_code1		db	"exit ldt code 1 now <--", 0
 join_cgate_code1	db	"join call gate code 1 now -->", 0
 exit_cgate_code1	db	"exit call gate code 1 now <--", 0
+level3_cgate_level0	db	"level 3 use call gate to call level 0 code."
 data32_len		equ	$ - $$
+
+;; TSS
+TSS:
+	DD	0				;; back
+	DD	BASE_STACK_LOADER		;; 0 级堆栈
+	DD	SELECTOR_STACK_PM
+	DD	0				;; 1 级堆栈
+	DD	0
+	DD	0				;; 2 级堆栈
+	DD	0
+	DD	0				;; cr3
+	DD	0				;; eip
+	DD	0				;; eflags
+	DD	0				;; eax
+	DD	0				;; ecx
+	DD	0				;; edx
+	DD	0				;; ebx
+	DD	0				;; esp
+	DD	0				;; ebp
+	DD	0				;; esi
+	DD	0				;; edi
+	DD	0				;; es
+	DD	0				;; cs
+	DD	0				;; ss
+	DD	0				;; ds
+	DD	0				;; fs
+	DD	0				;; gs
+	DD	0				;; LDT
+	Dw	0				;; 调试陷阱标志
+	Dw	$ - TSS + 2			;; I/o 位图基地址
+	Dw	0xff				;; I/O 位图结束标志
+TSS_len:	equ	$ - TSS
+
+;; level 3 stack
+ALIGN	32
+level3_stack:
+	times 512 db 0
+top_level3_stack	equ	$ - level3_stack
+
+;; level 3 code 1
+level3_code1:
+	;; 打印 join to protect mode
+	mov esi, (level3_cgate_level0 - data32)
+	call SELECTOR_GATE_CALL2:0
+
+	;返回特权级 0
+	call SELECTOR_GATE_CALL3:0
+level3_code1_len	equ	$ - level3_code1
 
 ;; call gate code 1
 cgate_code1:
@@ -345,7 +416,6 @@ cgate_code1:
 
 	;; 返回保护模式主函数
 	retf
-
 cgate_code1_len	equ $ - cgate_code1
 
 ;; ldt code 1
@@ -359,9 +429,7 @@ ldt_code1:
 	call SELECTOR_PRINT:0
 
 	;; 返回保护模式主函数
-	;jmp dword SELECTOR_PROTECT_MODE:(ok - data32)
 	retf
-
 ldt_code1_len	equ $ - ldt_code1
 
 ;; print32
@@ -417,13 +485,24 @@ protect_mode:
 	;jmp SELECTOR_LDT_CODE1:0
 	call SELECTOR_LDT_CODE1:0
 
-	call SELECTOR_GATE_CALL:0
+	;; 测试调用门
+	call SELECTOR_GATE_CALL1:0
 
-	;; 打印 ok!
+	;; 进入 level 3
+	mov ax, SELECTOR_TSS
+	ltr ax
+
+	push SELECTOR_LEVEL3_STACK		;; level 3 ss
+	push top_level3_stack			;; level 3 esp
+	push SELECTOR_LEVEL3_CODE1		;; level 3 cs
+	push 0					;; level 3 eip
+	retf
+protect_mode_len	equ	$ - protect_mode
+
+;; 打印 ok!
 ok:
 	mov esi, (print_ok - data32)
 	call SELECTOR_PRINT:0
 
 	jmp $
-
-protect_mode_len	equ	$ - protect_mode
+ok_len			equ	$ - ok
