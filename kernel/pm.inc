@@ -104,3 +104,32 @@
 	mov byte [%1 + 4], al
 	mov byte [%1 + 7], ah
 %endmacro
+
+;; cr3
+;;
+;; |Byte 3|Byte 2|7|6|5|4|3|2|1|0|7|6|5|4|3|2|1|0|
+;; |    Page-Directory   |             |P|P|     |
+;; |      Base Addr      |             |C|W|     |
+
+;; Page Directory Entry (PDE)
+;;
+;; |Byte 3|Byte 2|7|6|5|4|3|2|1|0|7|6|5|4|3|2|1|0|
+;; |      Page-Table     |Avail|G|P|0|A|P|P|U|R|P|
+;; |      Base Addr      |     | |S|   |C|W|S|W| |
+
+;; Page Table Entry (PTE)
+;;
+;; |Byte 3|Byte 2|7|6|5|4|3|2|1|0|7|6|5|4|3|2|1|0|
+;; |        Page         |Avail|G|P|0|A|P|P|U|R|P|
+;; |      Base Addr      |     | |S|   |C|W|S|W| |
+
+;; Page Addr
+%define	PAGE_DIR_BASE	0x200000		;; 2MB
+%define	PAGE_TABLE_BASE	0x201000		;; 2MB + 4KB
+
+;; Page Attributes
+%define	PG_P	1
+%define	PG_RWR	0
+%define	PG_RWW	2
+%define	PG_USS	0
+%define	PG_USU	4

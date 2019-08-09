@@ -19,6 +19,9 @@ DESC_LEVEL3_STACK:	DESCRIPTOR	0, 512, DA_DRWA + DA_32 + DA_DPL3
 DESC_LEVEL3_CODE1:	DESCRIPTOR	0, level3_code1_len, DA_X + DA_32 + DA_DPL3
 DESC_TSS:		DESCRIPTOR	0, TSS_len, DA_386TSS
 DESC_OK:		DESCRIPTOR	0, ok_len, DA_X + DA_32
+DESC_PAGE_DIR		DESCRIPTOR	PAGE_DIR_BASE, 4096, DA_DRW
+DESC_PAGE_TABLE		DESCRIPTOR	PAGE_TABLE_BASE, 1024, DA_DRW + DA_LIMIT_4K
+DESC_SETUP_PAGING	DESCRIPTOR	0, setup_paging_len, DA_X + DA_32
 
 CGATE_1:		GATE		SELECTOR_CGATE_CODE1, 0, 0, DA_386CGate
 CGATE_2:		GATE		SELECTOR_PRINT, 0, 0, DA_386CGate + DA_DPL3
@@ -40,6 +43,9 @@ SELECTOR_LEVEL3_STACK	equ	DESC_LEVEL3_STACK - GDT + SA_RPL3
 SELECTOR_LEVEL3_CODE1	equ	DESC_LEVEL3_CODE1 - GDT + SA_RPL3
 SELECTOR_TSS:		equ	DESC_TSS - GDT
 SELECTOR_OK:		equ	DESC_OK - GDT
+SELECTOR_PAGE_DIR	equ	DESC_PAGE_DIR - GDT
+SELECTOR_PAGE_TABLE	equ	DESC_PAGE_TABLE - GDT
+SELECTOR_SETUP_PAGING	equ	DESC_SETUP_PAGING - GDT
 
 SELECTOR_GATE_CALL1	equ	CGATE_1 - GDT
 SELECTOR_GATE_CALL2	equ	CGATE_2 - GDT + SA_RPL3
@@ -318,6 +324,8 @@ file_loaded:
 
 	INITDESC DESC_OK, ok
 
+	INITDESC DESC_SETUP_PAGING, setup_paging
+
 	;; 加载 gdtr
 	lgdt [gdt_ptr]
 
@@ -353,7 +361,9 @@ join_ldt_code1		db	"join ldt code 1 now -->", 0
 exit_ldt_code1		db	"exit ldt code 1 now <--", 0
 join_cgate_code1	db	"join call gate code 1 now -->", 0
 exit_cgate_code1	db	"exit call gate code 1 now <--", 0
-level3_cgate_level0	db	"level 3 use call gate to call level 0 code."
+level3_cgate_level0	db	"level 3 use call gate to call level 0 code.", 0
+setup_paging_start	db	"setup paging start -->", 0
+setup_paging_finish	db	"setup paging finish <--", 0
 data32_len		equ	$ - $$
 
 ;; TSS
@@ -393,6 +403,50 @@ ALIGN	32
 level3_stack:
 	times 512 db 0
 top_level3_stack	equ	$ - level3_stack
+
+;; setup paging
+setup_paging:
+	;; 打印 setup paging start
+	mov esi, (setup_paging_start - data32)
+	call SELECTOR_PRINT:0
+
+	;; 初始化页目录
+	mov ax, SELECTOR_PAGE_DIR
+	mov es, ax
+	mov ecx, 1024				;; 一共1024个页表
+	xor edi, edi
+	xor eax, eax
+	mov eax, PAGE_TABLE_BASE | PG_P | PG_USU | PG_RWW
+.1:
+	stosd
+	add eax, 4096
+	loop .1
+
+	;; 初始化所有页表（1024个）
+	mov ax, SELECTOR_PAGE_TABLE
+	mov es, ax
+	mov ecx, 1024 * 1024
+	xor edi, edi
+	xor eax, eax
+	mov eax, PG_P | PG_USU | PG_RWW
+.2:
+	stosd
+	add eax, 4096
+	loop .2
+
+	mov eax, PAGE_DIR_BASE
+	mov cr3, eax
+	mov eax, cr0
+	or eax, 0x80000000
+	mov cr0, eax
+
+	;; 打印 setup paging finish
+	mov esi, (setup_paging_finish - data32)
+	call SELECTOR_PRINT:0
+
+	;返回
+	retf
+setup_paging_len	equ	$ - setup_paging
 
 ;; level 3 code 1
 level3_code1:
@@ -501,6 +555,9 @@ protect_mode_len	equ	$ - protect_mode
 
 ;; 打印 ok!
 ok:
+	;; setup paging
+	call SELECTOR_SETUP_PAGING:0
+
 	mov esi, (print_ok - data32)
 	call SELECTOR_PRINT:0
 
