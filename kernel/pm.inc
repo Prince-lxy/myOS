@@ -79,9 +79,13 @@
 ;; |byte 7|byte 6|byte 5|byte 4|byte 3|byte 2|byte 1|byte 0|
 ;; |    Offs H   |     Attr    |   Selector  |   Offs L    |
 ;;
-;; |              Attr              |
+;; |         Call Gate Attr         |
 ;; |7|6|5|4|3|2|1|0||7|6|5|4|3|2|1|0|
 ;; |P|DPL|S| TYPE  ||0|0|0|Param num|
+;;
+;; |   Int/Trap/Task Gate Attr      |
+;; |7|6|5|4|3|2|1|0||7|6|5|4|3|2|1|0|
+;; |P|DPL|S| TYPE  ||0|0|0|  resv   |
 ;;
 ;; usage: GATE Selector, Offset, PCount, Attr
 ;; 	%1 Selector: dw 16bit

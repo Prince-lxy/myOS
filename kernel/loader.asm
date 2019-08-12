@@ -22,6 +22,7 @@ DESC_OK:		DESCRIPTOR	0, ok_len, DA_X + DA_32
 DESC_PAGE_DIR		DESCRIPTOR	PAGE_DIR_BASE, 4096, DA_DRW
 DESC_PAGE_TABLE		DESCRIPTOR	PAGE_TABLE_BASE, 1024, DA_DRW + DA_LIMIT_4K
 DESC_SETUP_PAGING	DESCRIPTOR	0, setup_paging_len, DA_X + DA_32
+DESC_INIT_8259A		DESCRIPTOR	0, init_8259A_len, DA_X + DA_32
 
 CGATE_1:		GATE		SELECTOR_CGATE_CODE1, 0, 0, DA_386CGate
 CGATE_2:		GATE		SELECTOR_PRINT, 0, 0, DA_386CGate + DA_DPL3
@@ -46,6 +47,7 @@ SELECTOR_OK:		equ	DESC_OK - GDT
 SELECTOR_PAGE_DIR	equ	DESC_PAGE_DIR - GDT
 SELECTOR_PAGE_TABLE	equ	DESC_PAGE_TABLE - GDT
 SELECTOR_SETUP_PAGING	equ	DESC_SETUP_PAGING - GDT
+SELECTOR_INIT_8259A	equ	DESC_INIT_8259A - GDT
 
 SELECTOR_GATE_CALL1	equ	CGATE_1 - GDT
 SELECTOR_GATE_CALL2	equ	CGATE_2 - GDT + SA_RPL3
@@ -62,6 +64,17 @@ ldt_ptr		dw	LDT_LEN
 
 ;; LDT 选择子
 SELECTOR_LDT_CODE1	equ	DESC_LDT_CODE1 - LDT + SA_TIL
+
+[SECTION .idt]
+;; idt
+IDT:
+%rep 255
+	GATE	SELECTOR_INIT_8259A, (default_handler - init_8259A), 0, DA_386IGate
+%endrep
+
+IDT_LEN		equ	$ - IDT
+idt_ptr		dw	IDT_LEN
+		dd	IDT
 
 [SECTION .s16]
 [BITS 16]
@@ -326,8 +339,13 @@ file_loaded:
 
 	INITDESC DESC_SETUP_PAGING, setup_paging
 
+	INITDESC DESC_INIT_8259A, init_8259A
+
 	;; 加载 gdtr
 	lgdt [gdt_ptr]
+
+	;; 加载 idtr
+	lidt [idt_ptr]
 
 	;; 关闭中断
 	cli
@@ -364,6 +382,9 @@ exit_cgate_code1	db	"exit call gate code 1 now <--", 0
 level3_cgate_level0	db	"level 3 use call gate to call level 0 code.", 0
 setup_paging_start	db	"setup paging start -->", 0
 setup_paging_finish	db	"setup paging finish <--", 0
+init_8259A_start	db	"init 8259A start -->", 0
+init_8259A_finish	db	"init 8259A finish <--", 0
+default_handler_msg	db	"interrupt default handler!!!", 0
 data32_len		equ	$ - $$
 
 ;; TSS
@@ -403,6 +424,83 @@ ALIGN	32
 level3_stack:
 	times 512 db 0
 top_level3_stack	equ	$ - level3_stack
+
+;; init 8259A
+init_8259A:
+	;; 打印 init 8259A start
+	mov esi, (init_8259A_start - data32)
+	call SELECTOR_PRINT:0
+
+	;; ICW1
+	mov al, 0x11				;; 开启 ICW4
+	out 0x20, al
+	call io_delay
+
+	out 0xa0, al
+	call io_delay
+
+	;; ICW2
+	mov al, 0x20				;; IRQ0 对应中断向量号 0x20
+	out 0x21, al
+	call io_delay
+
+	mov al, 0x28
+	out 0xa1, al				;; IRQ8 对应中断向量号 0x28
+	call io_delay
+
+	;; ICW3
+	mov al, 0x04				;; IR2 连从片
+	out 0x21, al
+	call io_delay
+
+	mov al, 0x2
+	out 0xa1, al
+	call io_delay
+
+	;; ICW4
+	mov al, 0x01				;; 80×86模式
+	out 0x21, al
+	call io_delay
+
+	out 0xa1, al
+	call io_delay
+
+	;; 屏蔽主 8259A 所有中断
+	mov al, 0xff
+	out 0x21, al
+	call io_delay
+
+	;; 屏蔽从 8259A 所有中断
+	mov al, 0xff
+	out 0xA1, al
+	call io_delay
+
+	;; 测试中段描述符表
+	int 0x1
+
+	;; 打印 init 8259A finish
+	mov esi, (init_8259A_finish - data32)
+	call SELECTOR_PRINT:0
+
+	;返回特权级 0
+	retf
+
+;; io delay
+io_delay:
+	nop
+	nop
+	nop
+	nop
+	ret
+
+;; irq default handler
+default_handler:
+	;; 打印 IDT default handler
+	mov esi, (default_handler_msg - data32)
+	call SELECTOR_PRINT:0
+
+	iretd
+init_8259A_len	equ	$ - level3_code1
 
 ;; setup paging
 setup_paging:
@@ -541,6 +639,9 @@ protect_mode:
 
 	;; 测试调用门
 	call SELECTOR_GATE_CALL1:0
+
+	;; 初始化8259A
+	call SELECTOR_INIT_8259A:0
 
 	;; 进入 level 3
 	mov ax, SELECTOR_TSS
