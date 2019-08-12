@@ -379,7 +379,8 @@ join_ldt_code1		db	"join ldt code 1 now -->", 0
 exit_ldt_code1		db	"exit ldt code 1 now <--", 0
 join_cgate_code1	db	"join call gate code 1 now -->", 0
 exit_cgate_code1	db	"exit call gate code 1 now <--", 0
-level3_cgate_level0	db	"level 3 use call gate to call level 0 code.", 0
+join_level3_mode	db	"join level 3 mode from level 0 now -->", 0
+exit_level3_mode	db	"exit level 3 mode to level 0 now <--", 0
 setup_paging_start	db	"setup paging start -->", 0
 setup_paging_finish	db	"setup paging finish <--", 0
 init_8259A_start	db	"init 8259A start -->", 0
@@ -548,11 +549,15 @@ setup_paging_len	equ	$ - setup_paging
 
 ;; level 3 code 1
 level3_code1:
-	;; 打印 join to protect mode
-	mov esi, (level3_cgate_level0 - data32)
+	;; 打印 join level 3 mode
+	mov esi, (join_level3_mode - data32)
 	call SELECTOR_GATE_CALL2:0
 
-	;返回特权级 0
+	;; 打印 exit level 3 mode
+	mov esi, (exit_level3_mode - data32)
+	call SELECTOR_GATE_CALL2:0
+
+	;通过 call + 调用门 返回特权级 0
 	call SELECTOR_GATE_CALL3:0
 level3_code1_len	equ	$ - level3_code1
 
