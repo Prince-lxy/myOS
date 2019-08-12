@@ -68,7 +68,11 @@ SELECTOR_LDT_CODE1	equ	DESC_LDT_CODE1 - LDT + SA_TIL
 [SECTION .idt]
 ;; idt
 IDT:
-%rep 255
+%rep 32
+	GATE	SELECTOR_INIT_8259A, (default_handler - init_8259A), 0, DA_386IGate
+%endrep
+.0x20:	GATE	SELECTOR_INIT_8259A, (clock_handler - init_8259A), 0, DA_386IGate
+%rep 222
 	GATE	SELECTOR_INIT_8259A, (default_handler - init_8259A), 0, DA_386IGate
 %endrep
 
@@ -466,8 +470,8 @@ init_8259A:
 	out 0xa1, al
 	call io_delay
 
-	;; 屏蔽主 8259A 所有中断
-	mov al, 0xff
+	;; 仅开启时钟中断
+	mov al, 0xfe
 	out 0x21, al
 	call io_delay
 
@@ -478,6 +482,9 @@ init_8259A:
 
 	;; 测试中段描述符表
 	int 0x1
+
+	;; 测试时钟中断
+	sti
 
 	;; 打印 init 8259A finish
 	mov esi, (init_8259A_finish - data32)
@@ -499,6 +506,15 @@ default_handler:
 	;; 打印 IDT default handler
 	mov esi, (default_handler_msg - data32)
 	call SELECTOR_PRINT:0
+
+	iretd
+
+;; clock interrupt handler
+clock_handler:
+	;; 递增显示屏坐标 [0,78] 处的内容
+	inc byte [gs:((80 * 0 + 78) * 2)]
+	mov al, 20h				;; 发送 EOI（中断处理结束标志）
+	out 20h, al
 
 	iretd
 init_8259A_len	equ	$ - level3_code1
