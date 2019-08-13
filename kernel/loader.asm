@@ -24,7 +24,7 @@ DESC_PAGE_DIR		DESCRIPTOR	PAGE_DIR_BASE, 4096, DA_DRW
 DESC_PAGE_TABLE		DESCRIPTOR	PAGE_TABLE_BASE, 1024, DA_DRW + DA_LIMIT_4K
 DESC_SETUP_PAGING	DESCRIPTOR	0, setup_paging_len, DA_X + DA_32
 DESC_INIT_8259A		DESCRIPTOR	0, init_8259A_len, DA_X + DA_32
-DESC_KERNEL_BIN		DESCRIPTOR	(BASE_KERNEL * 16), 0xffff, DA_DRW + DA_32
+DESC_KERNEL_ELF		DESCRIPTOR	(BASE_KERNEL_ELF * 16), 0xffff, DA_DRW + DA_32
 DESC_KERNEL_RW		DESCRIPTOR	0, 0xfffff, DA_DRW + DA_32 + DA_LIMIT_4K
 DESC_KERNEL_X		DESCRIPTOR	0, 0xfffff, DA_X + DA_32 + DA_LIMIT_4K
 DESC_INIT_KERNEL	DESCRIPTOR	0, init_kernel_len, DA_X + DA_32
@@ -53,7 +53,7 @@ SELECTOR_PAGE_DIR	equ	DESC_PAGE_DIR - GDT
 SELECTOR_PAGE_TABLE	equ	DESC_PAGE_TABLE - GDT
 SELECTOR_SETUP_PAGING	equ	DESC_SETUP_PAGING - GDT
 SELECTOR_INIT_8259A	equ	DESC_INIT_8259A - GDT
-SELECTOR_KERNEL_ELF	equ	DESC_KERNEL_BIN - GDT
+SELECTOR_KERNEL_ELF	equ	DESC_KERNEL_ELF - GDT
 SELECTOR_KERNEL_RW	equ	DESC_KERNEL_RW - GDT
 SELECTOR_KERNEL_X	equ	DESC_KERNEL_X - GDT
 SELECTOR_INIT_KERNEL	equ	DESC_INIT_KERNEL - GDT
@@ -98,7 +98,7 @@ sec_no		dw	0			;; 当前扇区号
 flag_odd	db	0			;; 是否为奇数
 print_line	db	3			;; 字符显示行
 
-kernel_file_name		db	"KERNEL  BIN"
+kernel_file_name		db	"KERNEL  ELF"
 find_kernel			db	"find kernel"
 find_kernel_len			equ	$ - find_kernel
 kernel_found			db	"kernel found"
@@ -180,17 +180,17 @@ get_fat_entry:
 	push bx
 	push ax
 
-	mov ax, BASE_KERNEL
+	mov ax, BASE_KERNEL_ELF
 	sub ax, 0x100			;; 基地址在运算时会左移16位，此处为FAT空出来4k空间
 	mov es, ax
-	mov bx, 0			;; es:bx = (BASE_KERNEL - 100):0
+	mov bx, 0			;; es:bx = (BASE_KERNEL_ELF - 100):0
 	xor ax, ax
  	mov ax, SEC_NO_FAT1
 	mov cl, 2
 	call read_sector
 
 	mov byte [flag_odd], 0
-	pop ax				;; ax = KERNEL.BIN 在 FAT 中的起始项号
+	pop ax				;; ax = KERNEL.ELF 在 FAT 中的起始项号
 	mov bx, 3
 	mul bx
 	mov bx, 2
@@ -230,7 +230,7 @@ start:
 	xor dl, dl				;; dl = 驱动器号
 	int 0x13
 
-	;; 从根文件系统读取 KERNEL.BIN
+	;; 从根文件系统读取 KERNEL.ELF
 	mov word [sec_no], SEC_NO_ROOT_DIR
 
 search_in_root_dir:
@@ -238,15 +238,15 @@ search_in_root_dir:
 	jz	not_found
 	dec word [root_dir_num]
 	
-	mov ax, BASE_KERNEL
+	mov ax, BASE_KERNEL_ELF
 	mov es, ax
-	mov bx, OFFSET_KERNEL			;; es:bx = KERNEL.BIN 缓冲区地址
+	mov bx, OFFSET_KERNEL_ELF		;; es:bx = KERNEL.ELF 缓冲区地址
 	mov ax, [sec_no]
 	mov cl, 1
 	call read_sector			;; 读取扇区号为 sec_no 的根目录分区到 es:bx
 
-	mov si, kernel_file_name		;; ds:si = "KERNEL  BIN"
-	mov di, OFFSET_KERNEL			;; es:di = 0x9000 * 0x10 + 0x100 = 0x90100
+	mov si, kernel_file_name		;; ds:si = "KERNEL  ELF"
+	mov di, OFFSET_KERNEL_ELF		;; es:di = BASE_KERNEL_ELF * 0x10 + OFFSET_KERNEL_ELF
 
 	cld
 	mov dx, 0x10				;; 一个根目录扇区包含文件描述符数目(512 / 32 = 16)
@@ -301,15 +301,15 @@ filename_found:
 	mov ax, ROOT_DIR_SEC_NUM
 	and di, 0xffe0				;; di 重新指向文件描述符第一个字节
 	add di, 0x1a				;; 指向文件描述符中起始 FAT 项
-	mov cx, word [es:di]			;; cx = KERNEL.BIN 在 FAT 表中 FAT 项号（2）
+	mov cx, word [es:di]			;; cx = KERNEL.ELF 在 FAT 表中 FAT 项号（2）
 	push cx
 
 	add	cx, ax
-	add cx, DELTA_SEC_NUM			;; cx = KERNEL.BIN 内容所在的扇区号
+	add cx, DELTA_SEC_NUM			;; cx = KERNEL.ELF 内容所在的扇区号
 	
-	mov ax, BASE_KERNEL
+	mov ax, BASE_KERNEL_ELF
 	mov es, ax
-	mov bx, OFFSET_KERNEL			;; es:bx = KERNEL.BIN 缓冲区
+	mov bx, OFFSET_KERNEL_ELF		;; es:bx = KERNEL.ELF 缓冲区
 
 	mov ax, cx				;; ax = 扇区号
 go_on_loading_file:
@@ -325,7 +325,7 @@ go_on_loading_file:
 	mov cl, 1
 	call read_sector
 
-	pop ax					;; 取出 KERNEL.BIN 在 FAT 中的项号
+	pop ax					;; 取出 KERNEL.ELF 在 FAT 中的项号
 	call get_fat_entry
 
 	cmp ax, 0x0fff
