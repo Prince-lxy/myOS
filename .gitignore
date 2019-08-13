@@ -55,6 +55,7 @@ dkms.conf
 *.img
 *.bin
 *.BIN
+*.ELF
 
 # Log file
 *.log
