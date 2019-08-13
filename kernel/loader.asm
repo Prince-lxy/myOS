@@ -1,5 +1,6 @@
 %include "pm.inc"
 %include "fat12.inc"
+%include "bootloader.inc"
 
 org 0x90100
 	jmp start
@@ -23,6 +24,10 @@ DESC_PAGE_DIR		DESCRIPTOR	PAGE_DIR_BASE, 4096, DA_DRW
 DESC_PAGE_TABLE		DESCRIPTOR	PAGE_TABLE_BASE, 1024, DA_DRW + DA_LIMIT_4K
 DESC_SETUP_PAGING	DESCRIPTOR	0, setup_paging_len, DA_X + DA_32
 DESC_INIT_8259A		DESCRIPTOR	0, init_8259A_len, DA_X + DA_32
+DESC_KERNEL_BIN		DESCRIPTOR	(BASE_KERNEL * 16), 0xffff, DA_DRW + DA_32
+DESC_KERNEL_RW		DESCRIPTOR	0, 0xfffff, DA_DRW + DA_32 + DA_LIMIT_4K
+DESC_KERNEL_X		DESCRIPTOR	0, 0xfffff, DA_X + DA_32 + DA_LIMIT_4K
+DESC_INIT_KERNEL	DESCRIPTOR	0, init_kernel_len, DA_X + DA_32
 
 CGATE_1:		GATE		SELECTOR_CGATE_CODE1, 0, 0, DA_386CGate
 CGATE_2:		GATE		SELECTOR_PRINT, 0, 0, DA_386CGate + DA_DPL3
@@ -48,6 +53,10 @@ SELECTOR_PAGE_DIR	equ	DESC_PAGE_DIR - GDT
 SELECTOR_PAGE_TABLE	equ	DESC_PAGE_TABLE - GDT
 SELECTOR_SETUP_PAGING	equ	DESC_SETUP_PAGING - GDT
 SELECTOR_INIT_8259A	equ	DESC_INIT_8259A - GDT
+SELECTOR_KERNEL_ELF	equ	DESC_KERNEL_BIN - GDT
+SELECTOR_KERNEL_RW	equ	DESC_KERNEL_RW - GDT
+SELECTOR_KERNEL_X	equ	DESC_KERNEL_X - GDT
+SELECTOR_INIT_KERNEL	equ	DESC_INIT_KERNEL - GDT
 
 SELECTOR_GATE_CALL1	equ	CGATE_1 - GDT
 SELECTOR_GATE_CALL2	equ	CGATE_2 - GDT + SA_RPL3
@@ -98,6 +107,15 @@ kernel_not_found		db	"kernel not found"
 kernel_not_found_len		equ	$ - kernel_not_found
 loading				db	"loading"
 loading_len			equ	$ - loading
+
+;; 关闭软驱马达
+kill_motor:
+	push dx
+	mov dx, 0x03f2
+	mov al, 0
+	out dx, al
+	pop dx
+	ret
 
 ;; read_sector
 ;; 起始扇区 = ax
@@ -320,6 +338,11 @@ go_on_loading_file:
 	jmp go_on_loading_file
 
 file_loaded:
+	;; 关闭软驱马达
+	call kill_motor
+
+;; ============================== 准备进入 32 位保护模式 ==============================
+
 	;; 初始化段描述符
 	INITDESC DESC_PROTECT_MODE, protect_mode
 
@@ -345,6 +368,8 @@ file_loaded:
 
 	INITDESC DESC_INIT_8259A, init_8259A
 
+	INITDESC DESC_INIT_KERNEL, init_kernel
+
 	;; 加载 gdtr
 	lgdt [gdt_ptr]
 
@@ -367,8 +392,6 @@ file_loaded:
 	;; 进入保护模式
 	jmp dword SELECTOR_PROTECT_MODE:0
 
-	;jmp BASE_KERNEL:OFFSET_KERNEL
-
 ;; ============================== 32 位保护模式 ==============================
 
 [SECTION .s32]
@@ -390,6 +413,8 @@ setup_paging_finish	db	"setup paging finish <--", 0
 init_8259A_start	db	"init 8259A start -->", 0
 init_8259A_finish	db	"init 8259A finish <--", 0
 default_handler_msg	db	"interrupt default handler!!!", 0
+init_kernel_start	db	"init kernel start -->", 0
+init_kernel_finish	db	"init kernel finish <--", 0
 data32_len		equ	$ - $$
 
 ;; TSS
@@ -429,6 +454,82 @@ ALIGN	32
 level3_stack:
 	times 512 db 0
 top_level3_stack	equ	$ - level3_stack
+
+;; init kernel
+init_kernel:
+	;; 打印 init kernel start
+	mov esi, (init_kernel_start - data32)
+	call SELECTOR_PRINT:0
+
+	;; 设置代码段寄存器
+	mov ax, SELECTOR_KERNEL_ELF
+	mov ds, ax
+	mov ax, SELECTOR_KERNEL_RW
+	mov es, ax
+
+	xor esi, esi
+	mov cx, word [ds:0x2c]			;; cx = program header number
+	movzx ecx, cx
+	mov esi, [ds:0x1c]			;; esi = program header offset
+
+.begin:
+	mov eax, [esi + 0]
+	cmp eax, 0
+	jz .no_action
+
+	push dword [esi + 0x10]			;; p_filesize
+	mov eax, [esi + 0x4]
+	push eax				;; p_offset
+	push dword [esi + 0x8]			;; p_vaddr
+	call memcpy
+	add esp, 12
+
+.no_action:
+	add esi, 0x20				;; esi 指向下一个 program header
+	dec ecx
+	jnz .begin
+
+	;; 还原 ds
+	mov ax, SELECTOR_DATA_PM
+	mov ds, ax
+
+	;; 打印 init kernel finish
+	mov esi, (init_kernel_finish - data32)
+	call SELECTOR_PRINT:0
+
+	retf
+
+;; memcpy (p_vaddr, p_offset, p_filesize)
+memcpy:
+	push ebp
+	mov ebp, esp
+
+	push edi
+	push esi
+	push ecx
+
+	mov edi, [ss:ebp + 8]			;; p_vaddr
+	mov esi, [ss:ebp + 12]			;; p_offset
+	mov ecx, [ss:ebp + 16]			;; p_filesize
+
+memcpy.1:
+	cmp ecx, 0
+	jz memcpy.2
+	mov byte al, [ds:esi]
+	inc esi
+	mov byte [es:edi], al
+	inc edi
+	dec ecx
+	jmp memcpy.1
+
+memcpy.2:
+	pop ecx
+	pop esi
+	pop edi
+	mov esp, ebp
+	pop ebp
+	ret
+init_kernel_len		equ	$ - init_kernel
 
 ;; init 8259A
 init_8259A:
@@ -680,8 +781,14 @@ ok:
 	;; setup paging
 	call SELECTOR_SETUP_PAGING:0
 
+	;; init kernel
+	call SELECTOR_INIT_KERNEL:0
+
 	mov esi, (print_ok - data32)
 	call SELECTOR_PRINT:0
+
+	;; jmp to kernel
+	jmp SELECTOR_KERNEL_X:KERNEL_ENTRY
 
 	jmp $
 ok_len			equ	$ - ok

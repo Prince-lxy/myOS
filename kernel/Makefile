@@ -7,7 +7,8 @@ LOADER.BIN: loader.asm fat12.inc pm.inc
 	nasm -o $@ $<
 
 KERNEL.BIN: kernel.asm
-	nasm -o $@ $^
+	nasm -f elf32 -o kernel.o $^
+	ld -s -m elf_i386 -Ttext 0x30400 -o $@ kernel.o
 
 image: boot.bin
 	@echo "#######################################################################"
@@ -33,4 +34,4 @@ insert: boot.img
 	@cp boot.img ../bochs-pc/floppya.img
 
 clean:
-	@rm boot.img boot.bin LOADER.BIN KERNEL.BIN
+	@rm boot.img boot.bin LOADER.BIN KERNEL.BIN kernel.o

@@ -1,4 +1,5 @@
 %include "fat12.inc"
+%include "bootloader.inc"
 
 org 0x7c00
 	jmp start
