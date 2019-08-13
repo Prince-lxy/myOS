@@ -517,7 +517,7 @@ clock_handler:
 	out 20h, al
 
 	iretd
-init_8259A_len	equ	$ - level3_code1
+init_8259A_len	equ	$ - init_8259A
 
 ;; setup paging
 setup_paging:
