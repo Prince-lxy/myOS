@@ -10,28 +10,14 @@ org 0x90100
 ;; GDT
 GDT:			DESCRIPTOR	0, 0, 0
 DESC_PROTECT_MODE:	DESCRIPTOR	0, protect_mode_len, DA_X + DA_32
-DESC_DATA_PM:		DESCRIPTOR	0, data32_len, DA_DRW + DA_DPL3
+DESC_DATA_PM:		DESCRIPTOR	0, data32_len, DA_DRW
 DESC_STACK_PM:		DESCRIPTOR	(BASE_LOADER * 16), BASE_STACK_LOADER, DA_DRWA + DA_32
-DESC_VIDEO:		DESCRIPTOR	0xb8000, 0xffff, DA_DRW + DA_DPL3
+DESC_VIDEO:		DESCRIPTOR	0xb8000, 0xffff, DA_DRW
 DESC_PRINT:		DESCRIPTOR	0, print32_len, DA_X + DA_32
-DESC_LDT:		DESCRIPTOR	0, LDT_LEN, DA_LDT
-DESC_CGATE_CODE1:	DESCRIPTOR	0, cgate_code1_len, DA_X + DA_32
-DESC_LEVEL3_STACK:	DESCRIPTOR	0, 512, DA_DRWA + DA_32 + DA_DPL3
-DESC_LEVEL3_CODE1:	DESCRIPTOR	0, level3_code1_len, DA_X + DA_32 + DA_DPL3
-DESC_TSS:		DESCRIPTOR	0, TSS_len, DA_386TSS
-DESC_OK:		DESCRIPTOR	0, ok_len, DA_X + DA_32
-DESC_PAGE_DIR		DESCRIPTOR	PAGE_DIR_BASE, 4096, DA_DRW
-DESC_PAGE_TABLE		DESCRIPTOR	PAGE_TABLE_BASE, 1024, DA_DRW + DA_LIMIT_4K
-DESC_SETUP_PAGING	DESCRIPTOR	0, setup_paging_len, DA_X + DA_32
-DESC_INIT_8259A		DESCRIPTOR	0, init_8259A_len, DA_X + DA_32
 DESC_KERNEL_ELF		DESCRIPTOR	(BASE_KERNEL_ELF * 16), 0xffff, DA_DRW + DA_32
 DESC_KERNEL_RW		DESCRIPTOR	0, 0xfffff, DA_DRW + DA_32 + DA_LIMIT_4K
 DESC_KERNEL_X		DESCRIPTOR	0, 0xfffff, DA_X + DA_32 + DA_LIMIT_4K
 DESC_INIT_KERNEL	DESCRIPTOR	0, init_kernel_len, DA_X + DA_32
-
-CGATE_1:		GATE		SELECTOR_CGATE_CODE1, 0, 0, DA_386CGate
-CGATE_2:		GATE		SELECTOR_PRINT, 0, 0, DA_386CGate + DA_DPL3
-CGATE_3:		GATE		SELECTOR_OK, 0, 0, DA_386CGate + DA_DPL3
 
 GDT_LEN		equ	$ - GDT
 gdt_ptr		dw	GDT_LEN
@@ -43,51 +29,10 @@ SELECTOR_DATA_PM	equ	DESC_DATA_PM - GDT
 SELECTOR_STACK_PM	equ	DESC_STACK_PM - GDT
 SELECTOR_VIDEO		equ	DESC_VIDEO - GDT
 SELECTOR_PRINT		equ	DESC_PRINT - GDT
-SELECTOR_LDT		equ	DESC_LDT - GDT
-SELECTOR_CGATE_CODE1	equ	DESC_CGATE_CODE1 - GDT
-SELECTOR_LEVEL3_STACK	equ	DESC_LEVEL3_STACK - GDT + SA_RPL3
-SELECTOR_LEVEL3_CODE1	equ	DESC_LEVEL3_CODE1 - GDT + SA_RPL3
-SELECTOR_TSS:		equ	DESC_TSS - GDT
-SELECTOR_OK:		equ	DESC_OK - GDT
-SELECTOR_PAGE_DIR	equ	DESC_PAGE_DIR - GDT
-SELECTOR_PAGE_TABLE	equ	DESC_PAGE_TABLE - GDT
-SELECTOR_SETUP_PAGING	equ	DESC_SETUP_PAGING - GDT
-SELECTOR_INIT_8259A	equ	DESC_INIT_8259A - GDT
 SELECTOR_KERNEL_ELF	equ	DESC_KERNEL_ELF - GDT
 SELECTOR_KERNEL_RW	equ	DESC_KERNEL_RW - GDT
 SELECTOR_KERNEL_X	equ	DESC_KERNEL_X - GDT
 SELECTOR_INIT_KERNEL	equ	DESC_INIT_KERNEL - GDT
-
-SELECTOR_GATE_CALL1	equ	CGATE_1 - GDT
-SELECTOR_GATE_CALL2	equ	CGATE_2 - GDT + SA_RPL3
-SELECTOR_GATE_CALL3	equ	CGATE_3 - GDT + SA_RPL3
-
-[SECTION .ldt]
-;; ldt
-LDT:
-DESC_LDT_CODE1:		DESCRIPTOR	0, ldt_code1_len, DA_X + DA_32
-
-LDT_LEN		equ	$ - LDT
-ldt_ptr		dw	LDT_LEN
-		dd	LDT
-
-;; LDT 选择子
-SELECTOR_LDT_CODE1	equ	DESC_LDT_CODE1 - LDT + SA_TIL
-
-[SECTION .idt]
-;; idt
-IDT:
-%rep 32
-	GATE	SELECTOR_INIT_8259A, (default_handler - init_8259A), 0, DA_386IGate
-%endrep
-.0x20:	GATE	SELECTOR_INIT_8259A, (clock_handler - init_8259A), 0, DA_386IGate
-%rep 222
-	GATE	SELECTOR_INIT_8259A, (default_handler - init_8259A), 0, DA_386IGate
-%endrep
-
-IDT_LEN		equ	$ - IDT
-idt_ptr		dw	IDT_LEN
-		dd	IDT
 
 [SECTION .s16]
 [BITS 16]
@@ -350,31 +295,10 @@ file_loaded:
 
 	INITDESC DESC_PRINT, print32
 
-	INITDESC DESC_LDT_CODE1, ldt_code1
-
-	INITDESC DESC_LDT, LDT
-
-	INITDESC DESC_CGATE_CODE1, cgate_code1
-
-	INITDESC DESC_LEVEL3_STACK, level3_stack
-
-	INITDESC DESC_LEVEL3_CODE1, level3_code1
-
-	INITDESC DESC_TSS, TSS
-
-	INITDESC DESC_OK, ok
-
-	INITDESC DESC_SETUP_PAGING, setup_paging
-
-	INITDESC DESC_INIT_8259A, init_8259A
-
 	INITDESC DESC_INIT_KERNEL, init_kernel
 
 	;; 加载 gdtr
 	lgdt [gdt_ptr]
-
-	;; 加载 idtr
-	lidt [idt_ptr]
 
 	;; 关闭中断
 	cli
@@ -402,58 +326,9 @@ data32:
 pm_print_line		dd	0x00000006
 join_pm			db	"join protect mode now.", 0
 print_ok		db	"OK!", 0
-join_ldt_code1		db	"join ldt code 1 now -->", 0
-exit_ldt_code1		db	"exit ldt code 1 now <--", 0
-join_cgate_code1	db	"join call gate code 1 now -->", 0
-exit_cgate_code1	db	"exit call gate code 1 now <--", 0
-join_level3_mode	db	"join level 3 mode from level 0 now -->", 0
-exit_level3_mode	db	"exit level 3 mode to level 0 now <--", 0
-setup_paging_start	db	"setup paging start -->", 0
-setup_paging_finish	db	"setup paging finish <--", 0
-init_8259A_start	db	"init 8259A start -->", 0
-init_8259A_finish	db	"init 8259A finish <--", 0
-default_handler_msg	db	"interrupt default handler!!!", 0
 init_kernel_start	db	"init kernel start -->", 0
 init_kernel_finish	db	"init kernel finish <--", 0
 data32_len		equ	$ - $$
-
-;; TSS
-TSS:
-	DD	0				;; back
-	DD	BASE_STACK_LOADER		;; 0 级堆栈
-	DD	SELECTOR_STACK_PM
-	DD	0				;; 1 级堆栈
-	DD	0
-	DD	0				;; 2 级堆栈
-	DD	0
-	DD	0				;; cr3
-	DD	0				;; eip
-	DD	0				;; eflags
-	DD	0				;; eax
-	DD	0				;; ecx
-	DD	0				;; edx
-	DD	0				;; ebx
-	DD	0				;; esp
-	DD	0				;; ebp
-	DD	0				;; esi
-	DD	0				;; edi
-	DD	0				;; es
-	DD	0				;; cs
-	DD	0				;; ss
-	DD	0				;; ds
-	DD	0				;; fs
-	DD	0				;; gs
-	DD	0				;; LDT
-	Dw	0				;; 调试陷阱标志
-	Dw	$ - TSS + 2			;; I/o 位图基地址
-	Dw	0xff				;; I/O 位图结束标志
-TSS_len:	equ	$ - TSS
-
-;; level 3 stack
-ALIGN	32
-level3_stack:
-	times 512 db 0
-top_level3_stack	equ	$ - level3_stack
 
 ;; init kernel
 init_kernel:
@@ -531,181 +406,6 @@ memcpy.2:
 	ret
 init_kernel_len		equ	$ - init_kernel
 
-;; init 8259A
-init_8259A:
-	;; 打印 init 8259A start
-	mov esi, (init_8259A_start - data32)
-	call SELECTOR_PRINT:0
-
-	;; ICW1
-	mov al, 0x11				;; 开启 ICW4
-	out 0x20, al
-	call io_delay
-
-	out 0xa0, al
-	call io_delay
-
-	;; ICW2
-	mov al, 0x20				;; IRQ0 对应中断向量号 0x20
-	out 0x21, al
-	call io_delay
-
-	mov al, 0x28
-	out 0xa1, al				;; IRQ8 对应中断向量号 0x28
-	call io_delay
-
-	;; ICW3
-	mov al, 0x04				;; IR2 连从片
-	out 0x21, al
-	call io_delay
-
-	mov al, 0x2
-	out 0xa1, al
-	call io_delay
-
-	;; ICW4
-	mov al, 0x01				;; 80×86模式
-	out 0x21, al
-	call io_delay
-
-	out 0xa1, al
-	call io_delay
-
-	;; 仅开启时钟中断
-	mov al, 0xfe
-	out 0x21, al
-	call io_delay
-
-	;; 屏蔽从 8259A 所有中断
-	mov al, 0xff
-	out 0xA1, al
-	call io_delay
-
-	;; 测试中段描述符表
-	int 0x1
-
-	;; 测试时钟中断
-	sti
-
-	;; 打印 init 8259A finish
-	mov esi, (init_8259A_finish - data32)
-	call SELECTOR_PRINT:0
-
-	;返回特权级 0
-	retf
-
-;; io delay
-io_delay:
-	nop
-	nop
-	nop
-	nop
-	ret
-
-;; irq default handler
-default_handler:
-	;; 打印 IDT default handler
-	mov esi, (default_handler_msg - data32)
-	call SELECTOR_PRINT:0
-
-	iretd
-
-;; clock interrupt handler
-clock_handler:
-	;; 递增显示屏坐标 [0,78] 处的内容
-	inc byte [gs:((80 * 0 + 78) * 2)]
-	mov al, 20h				;; 发送 EOI（中断处理结束标志）
-	out 20h, al
-
-	iretd
-init_8259A_len	equ	$ - init_8259A
-
-;; setup paging
-setup_paging:
-	;; 打印 setup paging start
-	mov esi, (setup_paging_start - data32)
-	call SELECTOR_PRINT:0
-
-	;; 初始化页目录
-	mov ax, SELECTOR_PAGE_DIR
-	mov es, ax
-	mov ecx, 1024				;; 一共1024个页表
-	xor edi, edi
-	xor eax, eax
-	mov eax, PAGE_TABLE_BASE | PG_P | PG_USU | PG_RWW
-.1:
-	stosd
-	add eax, 4096
-	loop .1
-
-	;; 初始化所有页表（1024个）
-	mov ax, SELECTOR_PAGE_TABLE
-	mov es, ax
-	mov ecx, 1024 * 1024
-	xor edi, edi
-	xor eax, eax
-	mov eax, PG_P | PG_USU | PG_RWW
-.2:
-	stosd
-	add eax, 4096
-	loop .2
-
-	mov eax, PAGE_DIR_BASE
-	mov cr3, eax
-	mov eax, cr0
-	or eax, 0x80000000
-	mov cr0, eax
-
-	;; 打印 setup paging finish
-	mov esi, (setup_paging_finish - data32)
-	call SELECTOR_PRINT:0
-
-	;返回
-	retf
-setup_paging_len	equ	$ - setup_paging
-
-;; level 3 code 1
-level3_code1:
-	;; 打印 join level 3 mode
-	mov esi, (join_level3_mode - data32)
-	call SELECTOR_GATE_CALL2:0
-
-	;; 打印 exit level 3 mode
-	mov esi, (exit_level3_mode - data32)
-	call SELECTOR_GATE_CALL2:0
-
-	;通过 call + 调用门 返回特权级 0
-	call SELECTOR_GATE_CALL3:0
-level3_code1_len	equ	$ - level3_code1
-
-;; call gate code 1
-cgate_code1:
-	;; 进入函数
-	mov esi, (join_cgate_code1 - data32)
-	call SELECTOR_PRINT:0
-
-	;; 离开函数
-	mov esi, (exit_cgate_code1 - data32)
-	call SELECTOR_PRINT:0
-
-	;; 返回保护模式主函数
-	retf
-cgate_code1_len	equ $ - cgate_code1
-
-;; ldt code 1
-ldt_code1:
-	;; 进入函数
-	mov esi, (join_ldt_code1 - data32)
-	call SELECTOR_PRINT:0
-
-	;; 离开函数
-	mov esi, (exit_ldt_code1 - data32)
-	call SELECTOR_PRINT:0
-
-	;; 返回保护模式主函数
-	retf
-ldt_code1_len	equ $ - ldt_code1
-
 ;; print32
 ;; esi = 字符串首地址
 print32:
@@ -752,35 +452,6 @@ protect_mode:
 	mov esi, (join_pm - data32)
 	call SELECTOR_PRINT:0
 
-	;; 加载 ldtr
-	mov ax, SELECTOR_LDT
-	lldt ax
-
-	;jmp SELECTOR_LDT_CODE1:0
-	call SELECTOR_LDT_CODE1:0
-
-	;; 测试调用门
-	call SELECTOR_GATE_CALL1:0
-
-	;; 初始化8259A
-	call SELECTOR_INIT_8259A:0
-
-	;; 进入 level 3
-	mov ax, SELECTOR_TSS
-	ltr ax
-
-	push SELECTOR_LEVEL3_STACK		;; level 3 ss
-	push top_level3_stack			;; level 3 esp
-	push SELECTOR_LEVEL3_CODE1		;; level 3 cs
-	push 0					;; level 3 eip
-	retf
-protect_mode_len	equ	$ - protect_mode
-
-;; 打印 ok!
-ok:
-	;; setup paging
-	call SELECTOR_SETUP_PAGING:0
-
 	;; init kernel
 	call SELECTOR_INIT_KERNEL:0
 
@@ -790,5 +461,4 @@ ok:
 	;; jmp to kernel
 	jmp SELECTOR_KERNEL_X:KERNEL_ENTRY
 
-	jmp $
-ok_len			equ	$ - ok
+protect_mode_len	equ	$ - protect_mode
