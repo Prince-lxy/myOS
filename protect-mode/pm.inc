@@ -23,6 +23,9 @@
 ;; 32-bit segment
 %define	DA_32	0x4000
 
+;; Segment limit unit
+%define DA_LIMIT_4K 0x8000
+
 ;; Descriptor privilege
 %define	DA_DPL0	0x00		;; DPL = 0
 %define	DA_DPL1	0x20		;; DPL = 1
@@ -33,10 +36,10 @@
 %define	DA_DR	0x90		;; Read-Only
 %define DA_DRW	0x92		;; Read/Write
 %define DA_DRWA	0x93		;; Read/Write, accessed
-%define DA_C	0x98		;; Execute-Only
-%define	DA_CR	0x9A		;; Execute/Read
-%define DA_CCO	0x9C		;; Execute-Only, conforming
-%define	DA_CCOR	0x9E		;; Execute/Read-Only, conforming
+%define DA_X	0x98		;; Execute-Only
+%define	DA_XR	0x9A		;; Execute/Read
+%define DA_XCO	0x9C		;; Execute-Only, conforming
+%define	DA_XCOR	0x9E		;; Execute/Read-Only, conforming
 
 ;; GDT System-Segment and Gate-Descriptor Types
 %define	DA_LDT		0x82		;; LDT
@@ -57,3 +60,80 @@
 %define	SA_RPL3	3
 %define	SA_TIG	0
 %define	SA_TIL	4
+
+;; gdtr
+;;
+;; |byte 7|byte 6|byte 5|byte 4|byte 3|byte 2|byte 1|byte 0|
+;; |                   Base                  |    Limit    |
+
+;; cr0
+;;
+;; | 7| 6| 5| 4| 3| 2| 1| 0|| 7| 6| 5| 4| 3| 2| 1| 0|
+;; |PG|CD|NW|                              |AM|  |WP|
+;;
+;; | 7| 6| 5| 4| 3| 2| 1| 0|| 7| 6| 5| 4| 3| 2| 1| 0|
+;; |                              |NE|ET|TS|EM|MP|PE|
+
+;; Gate
+;;
+;; |byte 7|byte 6|byte 5|byte 4|byte 3|byte 2|byte 1|byte 0|
+;; |    Offs H   |     Attr    |   Selector  |   Offs L    |
+;;
+;; |         Call Gate Attr         |
+;; |7|6|5|4|3|2|1|0||7|6|5|4|3|2|1|0|
+;; |P|DPL|S| TYPE  ||0|0|0|Param num|
+;;
+;; |   Int/Trap/Task Gate Attr      |
+;; |7|6|5|4|3|2|1|0||7|6|5|4|3|2|1|0|
+;; |P|DPL|S| TYPE  ||0|0|0|  resv   |
+;;
+;; usage: GATE Selector, Offset, PCount, Attr
+;; 	%1 Selector: dw 16bit
+;; 	%2 Offset: dd 32bit
+;;	%3 PCount: db 8bit
+;; 	%3 Attr: db 8bit
+
+%macro GATE 4
+	dw %2 & 0xffff
+	dw %1
+	dw (%3 & 0x1f) | ((%4 << 8) & 0xff00)
+	dw ((%2 >> 16) & 0xffff)
+%endmacro
+
+%macro INITDESC 2
+	xor eax, eax
+	mov eax, %2
+	mov word [%1 + 2], ax
+	shr eax, 16
+	mov byte [%1 + 4], al
+	mov byte [%1 + 7], ah
+%endmacro
+
+;; cr3
+;;
+;; |Byte 3|Byte 2|7|6|5|4|3|2|1|0|7|6|5|4|3|2|1|0|
+;; |    Page-Directory   |             |P|P|     |
+;; |      Base Addr      |             |C|W|     |
+
+;; Page Directory Entry (PDE)
+;;
+;; |Byte 3|Byte 2|7|6|5|4|3|2|1|0|7|6|5|4|3|2|1|0|
+;; |      Page-Table     |Avail|G|P|0|A|P|P|U|R|P|
+;; |      Base Addr      |     | |S|   |C|W|S|W| |
+
+;; Page Table Entry (PTE)
+;;
+;; |Byte 3|Byte 2|7|6|5|4|3|2|1|0|7|6|5|4|3|2|1|0|
+;; |        Page         |Avail|G|P|0|A|P|P|U|R|P|
+;; |      Base Addr      |     | |S|   |C|W|S|W| |
+
+;; Page Addr
+%define	PAGE_DIR_BASE	0x200000		;; 2MB
+%define	PAGE_TABLE_BASE	0x201000		;; 2MB + 4KB
+
+;; Page Attributes
+%define	PG_P	1
+%define	PG_RWR	0
+%define	PG_RWW	2
+%define	PG_USS	0
+%define	PG_USU	4
