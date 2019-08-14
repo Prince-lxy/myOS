@@ -9,30 +9,20 @@ org 0x90100
 [SECTION .gdt]
 ;; GDT
 GDT:			DESCRIPTOR	0, 0, 0
-DESC_PROTECT_MODE:	DESCRIPTOR	0, protect_mode_len, DA_X + DA_32
-DESC_DATA_PM:		DESCRIPTOR	0, data32_len, DA_DRW
-DESC_STACK_PM:		DESCRIPTOR	(BASE_LOADER * 16), BASE_STACK_LOADER, DA_DRWA + DA_32
+DESC_FLAT_RW		DESCRIPTOR	0, 0xfffff, DA_DRW + DA_32 + DA_LIMIT_4K
+DESC_FLAT_X		DESCRIPTOR	0, 0xfffff, DA_X + DA_32 + DA_LIMIT_4K
 DESC_VIDEO:		DESCRIPTOR	0xb8000, 0xffff, DA_DRW
-DESC_PRINT:		DESCRIPTOR	0, print32_len, DA_X + DA_32
-DESC_KERNEL_ELF		DESCRIPTOR	(BASE_KERNEL_ELF * 16), 0xffff, DA_DRW + DA_32
-DESC_KERNEL_RW		DESCRIPTOR	0, 0xfffff, DA_DRW + DA_32 + DA_LIMIT_4K
-DESC_KERNEL_X		DESCRIPTOR	0, 0xfffff, DA_X + DA_32 + DA_LIMIT_4K
-DESC_INIT_KERNEL	DESCRIPTOR	0, init_kernel_len, DA_X + DA_32
+DESC_STACK_LOADER:	DESCRIPTOR	(BASE_LOADER * 16), BASE_STACK_LOADER, DA_DRWA + DA_32
 
 GDT_LEN		equ	$ - GDT
 gdt_ptr		dw	GDT_LEN
 		dd	GDT
 
 ;; GDT 选择子
-SELECTOR_PROTECT_MODE	equ	DESC_PROTECT_MODE - GDT
-SELECTOR_DATA_PM	equ	DESC_DATA_PM - GDT
-SELECTOR_STACK_PM	equ	DESC_STACK_PM - GDT
+SELECTOR_FLAT_RW	equ	DESC_FLAT_RW - GDT
+SELECTOR_FLAT_X		equ	DESC_FLAT_X - GDT
 SELECTOR_VIDEO		equ	DESC_VIDEO - GDT
-SELECTOR_PRINT		equ	DESC_PRINT - GDT
-SELECTOR_KERNEL_ELF	equ	DESC_KERNEL_ELF - GDT
-SELECTOR_KERNEL_RW	equ	DESC_KERNEL_RW - GDT
-SELECTOR_KERNEL_X	equ	DESC_KERNEL_X - GDT
-SELECTOR_INIT_KERNEL	equ	DESC_INIT_KERNEL - GDT
+SELECTOR_STACK_LOADER	equ	DESC_STACK_LOADER - GDT
 
 [SECTION .s16]
 [BITS 16]
@@ -288,15 +278,6 @@ file_loaded:
 
 ;; ============================== 准备进入 32 位保护模式 ==============================
 
-	;; 初始化段描述符
-	INITDESC DESC_PROTECT_MODE, protect_mode
-
-	INITDESC DESC_DATA_PM, data32
-
-	INITDESC DESC_PRINT, print32
-
-	INITDESC DESC_INIT_KERNEL, init_kernel
-
 	;; 加载 gdtr
 	lgdt [gdt_ptr]
 
@@ -314,7 +295,7 @@ file_loaded:
 	mov cr0, eax
 
 	;; 进入保护模式
-	jmp dword SELECTOR_PROTECT_MODE:0
+	jmp dword SELECTOR_FLAT_X:protect_mode
 
 ;; ============================== 32 位保护模式 ==============================
 
@@ -322,59 +303,48 @@ file_loaded:
 [BITS 32]
 
 ;; 保护模式变量
-data32:
 pm_print_line		dd	0x00000006
 join_pm			db	"join protect mode now.", 0
-print_ok		db	"OK!", 0
+join_kernel		db	"join to kernel now.", 0
 init_kernel_start	db	"init kernel start -->", 0
 init_kernel_finish	db	"init kernel finish <--", 0
-data32_len		equ	$ - $$
 
 ;; init kernel
 init_kernel:
 	;; 打印 init kernel start
-	mov esi, (init_kernel_start - data32)
-	call SELECTOR_PRINT:0
+	mov esi, init_kernel_start
+	call print32
 
-	;; 设置代码段寄存器
-	mov ax, SELECTOR_KERNEL_ELF
-	mov ds, ax
-	mov ax, SELECTOR_KERNEL_RW
-	mov es, ax
-
-	xor esi, esi
-	mov cx, word [ds:0x2c]			;; cx = program header number
+	mov cx, word [ADDR_KERNEL_ELF + 0x2c]		;; cx = program header number
 	movzx ecx, cx
-	mov esi, [ds:0x1c]			;; esi = program header offset
+	xor esi, esi
+	mov esi, [ADDR_KERNEL_ELF + 0x1c]		;; esi = program header offset
 
 .begin:
-	mov eax, [esi + 0]
+	mov eax, [ADDR_KERNEL_ELF + esi]
 	cmp eax, 0
 	jz .no_action
 
-	push dword [esi + 0x10]			;; p_filesize
-	mov eax, [esi + 0x4]
-	push eax				;; p_offset
-	push dword [esi + 0x8]			;; p_vaddr
+	push dword [ADDR_KERNEL_ELF + esi + 0x10]	;; p_filesize -> size
+	mov eax, [ADDR_KERNEL_ELF + esi + 0x4]
+	add eax, ADDR_KERNEL_ELF
+	push eax					;; p_offset -> src_addr
+	push dword [ADDR_KERNEL_ELF + esi + 0x8]	;; p_vaddr -> des_addr
 	call memcpy
 	add esp, 12
 
 .no_action:
-	add esi, 0x20				;; esi 指向下一个 program header
+	add esi, 0x20					;; esi 指向下一个 program header
 	dec ecx
 	jnz .begin
 
-	;; 还原 ds
-	mov ax, SELECTOR_DATA_PM
-	mov ds, ax
-
 	;; 打印 init kernel finish
-	mov esi, (init_kernel_finish - data32)
-	call SELECTOR_PRINT:0
+	mov esi, init_kernel_finish
+	call print32
 
-	retf
+	ret
 
-;; memcpy (p_vaddr, p_offset, p_filesize)
+;; memcpy (des_addr, src_addr, size)
 memcpy:
 	push ebp
 	mov ebp, esp
@@ -383,16 +353,16 @@ memcpy:
 	push esi
 	push ecx
 
-	mov edi, [ss:ebp + 8]			;; p_vaddr
-	mov esi, [ss:ebp + 12]			;; p_offset
-	mov ecx, [ss:ebp + 16]			;; p_filesize
+	mov edi, [ss:ebp + 8]			;; des_addr
+	mov esi, [ss:ebp + 12]			;; src_addr
+	mov ecx, [ss:ebp + 16]			;; size
 
 memcpy.1:
 	cmp ecx, 0
 	jz memcpy.2
-	mov byte al, [ds:esi]
+	mov byte al, [esi]
 	inc esi
-	mov byte [es:edi], al
+	mov byte [edi], al
 	inc edi
 	dec ecx
 	jmp memcpy.1
@@ -404,7 +374,6 @@ memcpy.2:
 	mov esp, ebp
 	pop ebp
 	ret
-init_kernel_len		equ	$ - init_kernel
 
 ;; print32
 ;; esi = 字符串首地址
@@ -414,7 +383,7 @@ print32:
 	push ecx
 	xor eax, eax
 	xor ebx, ebx
-	mov word ax, [pm_print_line - data32]
+	mov word ax, [pm_print_line]
 	mov bx, 160
 	mul bx
 	mov edi, eax
@@ -426,39 +395,36 @@ print32:
 	add edi, 2
 	inc ecx
 	cmp al, 0
-	jz	.end
-	jnc	.loop
+	jz .end
+	jnc .loop
 
 .end:
-	inc dword [pm_print_line - data32]
+	inc dword [pm_print_line]
 
 	pop ecx
 	pop ebx
 	pop eax
-	retf
-print32_len	equ	$ - print32
+	ret
 
 ;; 保护模式开始
 protect_mode:
-	mov ax, SELECTOR_DATA_PM
+	mov ax, SELECTOR_FLAT_RW
 	mov ds, ax					;; ds = 数据段
 	mov ax, SELECTOR_VIDEO
 	mov gs, ax					;; gs = 显存段
-	mov ax, SELECTOR_STACK_PM
+	mov ax, SELECTOR_STACK_LOADER
 	mov ss, ax					;; ss = 堆栈段
 	mov esp, BASE_STACK_LOADER
 
 	;; 打印 join to protect mode
-	mov esi, (join_pm - data32)
-	call SELECTOR_PRINT:0
+	mov esi, join_pm
+	call print32
 
 	;; init kernel
-	call SELECTOR_INIT_KERNEL:0
+	call init_kernel
 
-	mov esi, (print_ok - data32)
-	call SELECTOR_PRINT:0
+	mov esi, join_kernel
+	call print32
 
 	;; jmp to kernel
-	jmp SELECTOR_KERNEL_X:KERNEL_ENTRY
-
-protect_mode_len	equ	$ - protect_mode
+	jmp SELECTOR_FLAT_X:KERNEL_ENTRY
