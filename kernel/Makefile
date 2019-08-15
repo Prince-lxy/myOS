@@ -1,14 +1,22 @@
 all: boot.bin LOADER.BIN KERNEL.ELF image
 
-boot.bin: boot.asm fat12.inc
+boot.bin: boot.asm fat12.inc bootloader.inc
 	nasm -o $@ $<
 
-LOADER.BIN: loader.asm fat12.inc pm.inc
+LOADER.BIN: loader.asm fat12.inc pm.inc bootloader.inc
 	nasm -o $@ $<
 
-KERNEL.ELF: kernel.asm
-	nasm -f elf32 -o kernel.o $^
-	ld -s -m elf_i386 -Ttext 0x30400 -o $@ kernel.o
+KERNEL.ELF: kernel.o start.o string.o
+	ld -s -m elf_i386 -Ttext 0x30400 -o $@ $^
+
+kernel.o: kernel.asm
+	nasm -f elf32 -o $@ $^
+
+string.o: string.asm
+	nasm -f elf32 -o $@ $^
+
+start.o: start.c const.h  protect.h  type.h
+	gcc -m32 -fno-builtin -c -o $@ $<
 
 image: boot.bin
 	@echo "#######################################################################"
@@ -34,4 +42,4 @@ insert: boot.img
 	@cp boot.img ../bochs-pc/floppya.img
 
 clean:
-	@rm boot.img boot.bin LOADER.BIN KERNEL.ELF kernel.o
+	@rm boot.img boot.bin LOADER.BIN KERNEL.ELF *.o
