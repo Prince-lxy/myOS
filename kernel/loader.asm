@@ -12,7 +12,6 @@ GDT:			DESCRIPTOR	0, 0, 0
 DESC_FLAT_RW		DESCRIPTOR	0, 0xfffff, DA_DRW + DA_32 + DA_LIMIT_4K
 DESC_FLAT_X		DESCRIPTOR	0, 0xfffff, DA_X + DA_32 + DA_LIMIT_4K
 DESC_VIDEO:		DESCRIPTOR	0xb8000, 0xffff, DA_DRW
-DESC_STACK_LOADER:	DESCRIPTOR	(BASE_LOADER * 16), BASE_STACK_LOADER, DA_DRWA + DA_32
 
 GDT_LEN		equ	$ - GDT
 gdt_ptr		dw	GDT_LEN
@@ -22,7 +21,6 @@ gdt_ptr		dw	GDT_LEN
 SELECTOR_FLAT_RW	equ	DESC_FLAT_RW - GDT
 SELECTOR_FLAT_X		equ	DESC_FLAT_X - GDT
 SELECTOR_VIDEO		equ	DESC_VIDEO - GDT
-SELECTOR_STACK_LOADER	equ	DESC_STACK_LOADER - GDT
 
 [SECTION .s16]
 [BITS 16]
@@ -410,11 +408,10 @@ print32:
 protect_mode:
 	mov ax, SELECTOR_FLAT_RW
 	mov ds, ax					;; ds = 数据段
+	mov ss, ax					;; ss = 堆栈段
+	mov esp, ADDR_STACK_LOADER
 	mov ax, SELECTOR_VIDEO
 	mov gs, ax					;; gs = 显存段
-	mov ax, SELECTOR_STACK_LOADER
-	mov ss, ax					;; ss = 堆栈段
-	mov esp, BASE_STACK_LOADER
 
 	;; 打印 join to protect mode
 	mov esi, join_pm
