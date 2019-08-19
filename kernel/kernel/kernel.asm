@@ -3,6 +3,7 @@ SELECTOR_KERNEL_X	equ	0x10
 extern c_start
 extern gdt_ptr
 extern idt_ptr
+extern init_8259a
 
 [section .bss]
 kernel_stack:	resb	2 * 1024
@@ -19,6 +20,8 @@ _start:
 	lgdt [gdt_ptr]				;; 使用新的 GDT
 
 	lidt [idt_ptr]				;; 加载 idtr
+
+	call init_8259a
 
 	jmp SELECTOR_KERNEL_X:K
 

@@ -18,3 +18,7 @@ typedef struct s_gate
 	t_8	attr;				// P(1) DPL(2) DT(1) TYPE(4)
 	t_16	offset_high;			// OFFSET HIGH
 }GATE;
+
+/* 中断向量 */
+#define INT_VECTOR_IRQ0         0x20
+#define INT_VECTOR_IRQ8         0x28
