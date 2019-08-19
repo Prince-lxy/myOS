@@ -28,7 +28,7 @@ $(KERNEL): $(OBJS)
 kernel/kernel.o: kernel/kernel.asm
 	$(ASM) $(ASMFLAG) -o $@ $^
 
-kernel/start.o: kernel/start.c include/const.h  include/protect.h  include/type.h
+kernel/start.o: kernel/start.c include/const.h include/type.h include/protect.h include/global.h include/string.h
 	$(CC) $(CFLAG) -c -o $@ $<
 
 ### lib

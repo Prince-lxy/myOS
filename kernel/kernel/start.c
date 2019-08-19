@@ -1,11 +1,13 @@
-#include "type.h"
 #include "const.h"
+#include "type.h"
 #include "protect.h"
-
-PUBLIC	void* memcpy(void* p_dst, void* p_src, int size);
+#include "global.h"
+#include "string.h"
 
 PUBLIC	t_8		gdt_ptr[6];		// 0-15:limit	16-47:base
 PUBLIC	DESCRIPTOR	gdt[GDT_SIZE];
+PUBLIC	t_8		idt_ptr[6];		// 0-15:limit	16-47:base
+PUBLIC	GATE		idt[IDT_SIZE];
 
 PUBLIC	void c_start()
 {
@@ -17,4 +19,10 @@ PUBLIC	void c_start()
 	t_32* p_gdt_base = (t_32*)(&gdt_ptr[2]);
 	*p_gdt_limit = GDT_SIZE * sizeof(DESCRIPTOR);
 	*p_gdt_base = (t_32)&gdt;
+
+	/* 更新 idt_ptr 内容 */
+	t_16* p_idt_limit = (t_16*)(&idt_ptr[0]);
+	t_32* p_idt_base = (t_32*)(&idt_ptr[2]);
+	*p_idt_limit = IDT_SIZE * sizeof(GATE);
+	*p_idt_base = (t_32)&idt;
 }
