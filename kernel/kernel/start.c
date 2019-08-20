@@ -11,6 +11,8 @@ PUBLIC	GATE		idt[IDT_SIZE];
 
 PUBLIC	void c_start()
 {
+	k_print_str("c_start -->\n");
+
 	/* 拷贝GDT */
 	memcpy(&gdt, (void*)(*(t_32*)(&gdt_ptr[2])), *((t_16*)(&gdt_ptr[0])));
 
@@ -25,4 +27,6 @@ PUBLIC	void c_start()
 	t_32* p_idt_base = (t_32*)(&idt_ptr[2]);
 	*p_idt_limit = IDT_SIZE * sizeof(GATE);
 	*p_idt_base = (t_32)&idt;
+
+	k_print_str("c_start <--\n");
 }
