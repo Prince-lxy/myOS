@@ -2,6 +2,7 @@
 #include "type.h"
 #include "protect.h"
 #include "ports.h"
+#include "string.h"
 
 PUBLIC void init_8259a()
 {
@@ -24,4 +25,6 @@ PUBLIC void init_8259a()
 	/* OCW1 关闭所有中断 */
 	out_byte(INT_M_MASK, 0xff);
 	out_byte(INT_S_MASK, 0xff);
+
+	k_print_str("init 8259A finished\n");
 }
