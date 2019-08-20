@@ -9,7 +9,7 @@ LDFLAG = -s -m elf_i386 -Ttext 0x30400
 
 BOOTLOADER = boot/boot.bin boot/loader.bin
 KERNEL = kernel/kernel.elf
-OBJS = kernel/kernel.o kernel/start.o kernel/8259a.o lib/string.o lib/libports.o
+OBJS = kernel/kernel.o kernel/start.o kernel/8259a.o lib/libstr.o lib/libports.o
 
 ### target
 all: $(BOOTLOADER) $(KERNEL) floppy copy insert
@@ -35,7 +35,7 @@ kernel/8259a.o: kernel/8259a.c include/const.h include/type.h include/protect.h 
 	$(CC) $(CFLAG) -c -o $@ $<
 
 ### lib
-lib/string.o: lib/string.asm
+lib/libstr.o: lib/libstr.asm
 	$(ASM) $(ASMFLAG) -o $@ $^
 
 lib/libports.o: lib/libports.asm
