@@ -45,7 +45,7 @@ k_print_str:
 
 	mov esi, [ebp + 8]			;; 字符串首地址
 	mov edi, [k_print_pos]
-	mov ah, 0xa
+	mov ah, 0xa				;; 颜色（浅绿色）
 
 k_print_str.1:
 	lodsb

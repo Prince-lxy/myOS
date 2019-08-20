@@ -26,7 +26,7 @@ _start:
 	jmp SELECTOR_KERNEL_X:K
 
 K:
-	mov ah, 0xf
+	mov ah, 0xe				;; 颜色（黄色）
 	mov al, 'K'
 	mov [gs:((80 * 0 + 39) * 2)], ax
 	jmp $

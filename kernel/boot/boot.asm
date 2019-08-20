@@ -208,7 +208,7 @@ print_str:
 	mov ax, ds
 	mov es, ax				;; es:bp 字符串
 	mov ax, 0x1301				;; int 0x10 打印字符串功能
-	mov bx, 0x000c				;; bh = 页码 bl = 颜色
+	mov bx, 0x000b				;; bh = 页码 bl = 颜色（浅青色）
 	mov byte dh, [print_line]		;; 行
 	mov dl, 0				;; 列
 	int 0x10
