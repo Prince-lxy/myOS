@@ -4,12 +4,18 @@ CC = gcc
 LD = ld
 ASMFLAG = -f elf32
 ASMFLAG_BOOT = -I boot/include/
-CFLAG = -I include -m32 -fno-builtin
+CFLAG = -I include -m32 -fno-builtin -fno-stack-protector
 LDFLAG = -s -m elf_i386 -Ttext 0x30400
 
 BOOTLOADER = boot/boot.bin boot/loader.bin
 KERNEL = kernel/kernel.elf
-OBJS = kernel/kernel.o kernel/start.o kernel/8259a.o lib/libstr.o lib/libports.o
+
+OBJS = kernel/kernel.o
+OBJS += kernel/start.o
+OBJS += kernel/8259a.o
+OBJS += lib/libstr.o
+OBJS += lib/libports.o
+OBJS += lib/libprint.o
 
 ### target
 all: $(BOOTLOADER) $(KERNEL) floppy copy insert
@@ -34,12 +40,16 @@ kernel/start.o: kernel/start.c include/const.h include/type.h include/protect.h 
 kernel/8259a.o: kernel/8259a.c include/const.h include/type.h include/protect.h include/ports.h
 	$(CC) $(CFLAG) -c -o $@ $<
 
-### lib
+### lib asm
 lib/libstr.o: lib/libstr.asm
 	$(ASM) $(ASMFLAG) -o $@ $^
 
 lib/libports.o: lib/libports.asm
 	$(ASM) $(ASMFLAG) -o $@ $^
+
+### lib c
+lib/libprint.o: lib/libprint.c include/const.h include/string.h
+	$(CC) $(CFLAG) -c -o $@ $<
 
 ### floppy
 floppy: boot/boot.bin
