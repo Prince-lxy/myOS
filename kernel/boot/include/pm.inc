@@ -24,7 +24,7 @@
 %define	DA_32	0x4000
 
 ;; Segment limit unit
-%define DA_LIMIT_4K 0x8000
+%define	DA_LIMIT_4K 0x8000
 
 ;; Descriptor privilege
 %define	DA_DPL0	0x00		;; DPL = 0
@@ -34,11 +34,11 @@
 
 ;; GDT Code-Segment and Data-Segment Types
 %define	DA_DR	0x90		;; Read-Only
-%define DA_DRW	0x92		;; Read/Write
-%define DA_DRWA	0x93		;; Read/Write, accessed
-%define DA_X	0x98		;; Execute-Only
+%define	DA_DRW	0x92		;; Read/Write
+%define	DA_DRWA	0x93		;; Read/Write, accessed
+%define	DA_X	0x98		;; Execute-Only
 %define	DA_XR	0x9A		;; Execute/Read
-%define DA_XCO	0x9C		;; Execute-Only, conforming
+%define	DA_XCO	0x9C		;; Execute-Only, conforming
 %define	DA_XCOR	0x9E		;; Execute/Read-Only, conforming
 
 ;; GDT System-Segment and Gate-Descriptor Types

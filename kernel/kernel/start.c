@@ -4,12 +4,12 @@
 #include "global.h"
 #include "string.h"
 
-PUBLIC	t_8		gdt_ptr[6];		// 0-15:limit	16-47:base
-PUBLIC	DESCRIPTOR	gdt[GDT_SIZE];
-PUBLIC	t_8		idt_ptr[6];		// 0-15:limit	16-47:base
-PUBLIC	GATE		idt[IDT_SIZE];
+PUBLIC t_8		gdt_ptr[6];		// 0-15:limit	16-47:base
+PUBLIC DESCRIPTOR	gdt[GDT_SIZE];
+PUBLIC t_8		idt_ptr[6];		// 0-15:limit	16-47:base
+PUBLIC GATE		idt[IDT_SIZE];
 
-PUBLIC	void c_start()
+PUBLIC void c_start()
 {
 	k_print_str("c_start -->\n");
 
