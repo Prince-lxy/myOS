@@ -311,7 +311,7 @@ init_kernel_finish	db	"init kernel finish <--", 0
 init_kernel:
 	;; 打印 init kernel start
 	mov esi, init_kernel_start
-	call print32
+	call pm_print_str
 
 	mov cx, word [ADDR_KERNEL_ELF + 0x2c]		;; cx = program header number
 	movzx ecx, cx
@@ -338,7 +338,7 @@ init_kernel:
 
 	;; 打印 init kernel finish
 	mov esi, init_kernel_finish
-	call print32
+	call pm_print_str
 
 	ret
 
@@ -373,9 +373,9 @@ memcpy.2:
 	pop ebp
 	ret
 
-;; print32
+;; pm_print_str
 ;; esi = 字符串首地址
-print32:
+pm_print_str:
 	push eax
 	push ebx
 	push ecx
@@ -415,13 +415,13 @@ protect_mode:
 
 	;; 打印 join to protect mode
 	mov esi, join_pm
-	call print32
+	call pm_print_str
 
 	;; init kernel
 	call init_kernel
 
 	mov esi, join_kernel
-	call print32
+	call pm_print_str
 
 	;; jmp to kernel
 	jmp SELECTOR_FLAT_X:KERNEL_ENTRY
