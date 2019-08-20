@@ -19,6 +19,57 @@ typedef struct s_gate
 	t_16	offset_high;			// OFFSET HIGH
 }GATE;
 
+/* 段描述符属性 */
+#define DA_32		0x4000
+#define DA_LIMIT_4K	0x8000
+
+#define	DA_DPL0			0x00		// DPL = 0
+#define	DA_DPL1			0x20		// DPL = 1
+#define	DA_DPL2			0x40		// DPL = 2
+#define	DA_DPL3			0x60		// DPL = 3
+#define	PRIVILEGE_KERLEL	0x00		// DPL = 0
+
+#define	DA_DR			0x90		// Read-Only
+#define	DA_DRW			0x92		// Read/Write
+#define	DA_DRWA			0x93		// Read/Write, accessed
+#define	DA_X			0x98		// Execute-Only
+#define	DA_XR			0x9A		// Execute/Read
+#define	DA_XCO			0x9C		// Execute-Only, conforming
+#define	DA_XCOR			0x9E		// Execute/Read-Only, conforming
+
+#define	DA_LDT			0x82		// LDT
+#define	DA_TaskGate		0x85		// Task Gate
+#define	DA_386TSS		0x89		// 32-bit TSS(Available)
+#define	DA_386CGate		0x8C		// 32-bit Call Gate
+#define	DA_386IGate		0x8E		// 32-bit Interrupt Gate
+#define	DA_386TGate		0x8F		// 32-bit Trap Gate
+
+#define SELECTOR_KERNEL_X	0x10
+
 /* 中断向量 */
 #define INT_VECTOR_IRQ0         0x20
 #define INT_VECTOR_IRQ8         0x28
+
+/* 中断处理函数 */
+void divide_error();
+void debug();
+void nmi();
+void breakpoint_exception();
+void overflow();
+void bounds_range_exceeded();
+void undefined_opcode();
+void no_machine();
+void double_fault();
+void copr_seg_overrun();
+void inval_tss();
+void segment_not_present();
+void stack_exception();
+void general_protection();
+void page_fault();
+void math_fault();
+void align_check();
+void machine_check();
+void float_point_exception();
+
+PUBLIC void init_idt();
+PUBLIC void init_8259a();

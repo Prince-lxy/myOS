@@ -26,5 +26,8 @@ PUBLIC void c_start()
 	*p_idt_limit = IDT_SIZE * sizeof(GATE);
 	*p_idt_base = (t_32)&idt;
 
+	init_idt();
+	init_8259a();
+
 	k_print_str("c start finished\n");
 }

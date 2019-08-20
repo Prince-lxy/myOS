@@ -13,9 +13,11 @@ KERNEL = kernel/kernel.elf
 OBJS = kernel/kernel.o
 OBJS += kernel/start.o
 OBJS += kernel/8259a.o
+OBJS += kernel/idt.o
 OBJS += lib/libstr.o
 OBJS += lib/libports.o
 OBJS += lib/libprint.o
+OBJS += lib/libidt.o
 
 ### target
 all: $(BOOTLOADER) $(KERNEL) floppy copy insert
@@ -24,7 +26,8 @@ all: $(BOOTLOADER) $(KERNEL) floppy copy insert
 boot/boot.bin: boot/boot.asm boot/include/fat12.inc boot/include/bootloader.inc
 	$(ASM) $(ASMFLAG_BOOT) -o $@ $<
 
-boot/loader.bin: boot/loader.asm boot/include/fat12.inc boot/include/pm.inc boot/include/bootloader.inc
+boot/loader.bin: boot/loader.asm boot/include/fat12.inc boot/include/pm.inc \
+ boot/include/bootloader.inc
 	$(ASM) $(ASMFLAG_BOOT) -o $@ $<
 
 ### kernel
@@ -34,10 +37,16 @@ $(KERNEL): $(OBJS)
 kernel/kernel.o: kernel/kernel.asm
 	$(ASM) $(ASMFLAG) -o $@ $^
 
-kernel/start.o: kernel/start.c include/const.h include/type.h include/protect.h include/global.h include/string.h
+kernel/start.o: kernel/start.c include/const.h include/type.h \
+ include/protect.h include/global.h include/string.h
 	$(CC) $(CFLAG) -c -o $@ $<
 
-kernel/8259a.o: kernel/8259a.c include/const.h include/type.h include/protect.h include/ports.h
+kernel/8259a.o: kernel/8259a.c include/const.h include/type.h \
+ include/protect.h include/ports.h
+	$(CC) $(CFLAG) -c -o $@ $<
+
+kernel/idt.o: kernel/idt.c include/const.h include/type.h include/string.h \
+ include/global.h include/protect.h
 	$(CC) $(CFLAG) -c -o $@ $<
 
 ### lib asm
@@ -45,6 +54,9 @@ lib/libstr.o: lib/libstr.asm
 	$(ASM) $(ASMFLAG) -o $@ $^
 
 lib/libports.o: lib/libports.asm
+	$(ASM) $(ASMFLAG) -o $@ $^
+
+lib/libidt.o: lib/libidt.asm
 	$(ASM) $(ASMFLAG) -o $@ $^
 
 ### lib c
