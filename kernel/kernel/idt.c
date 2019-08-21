@@ -27,6 +27,13 @@ PUBLIC char err_description[][64] = {
 	"#XF SIMD Floating-Point Exception"
 };
 
+PUBLIC void irq_handler(int irq)
+{
+	k_print_str("irq: ");
+	k_print_hex(irq);
+	k_print_str("\n");
+}
+
 PUBLIC void exception_handler(int vec_num, int err_code, int eip, int cs, int eflags)
 {
 	k_print_str("Exception --> ");
@@ -60,6 +67,7 @@ PUBLIC void init_idt_desc(t_8 vector_num, t_8 desc_type, t_int_handler handler, 
 
 PUBLIC void init_idt()
 {
+	/* X86 保护模式 0x0-0x1f */
 	init_idt_desc(0, DA_386IGate, divide_error, PRIVILEGE_KERLEL);
 	init_idt_desc(1, DA_386IGate, debug, PRIVILEGE_KERLEL);
 	init_idt_desc(2, DA_386IGate, nmi, PRIVILEGE_KERLEL);
@@ -79,6 +87,26 @@ PUBLIC void init_idt()
 	init_idt_desc(17, DA_386IGate, align_check, PRIVILEGE_KERLEL);
 	init_idt_desc(18, DA_386IGate, machine_check, PRIVILEGE_KERLEL);
 	init_idt_desc(19, DA_386IGate, float_point_exception, PRIVILEGE_KERLEL);
+
+	/* 8259A 主片 */
+	init_idt_desc(INT_VECTOR_IRQ0 + 0, DA_386IGate, hwint00, PRIVILEGE_KERLEL);
+	init_idt_desc(INT_VECTOR_IRQ0 + 1, DA_386IGate, hwint01, PRIVILEGE_KERLEL);
+	init_idt_desc(INT_VECTOR_IRQ0 + 2, DA_386IGate, hwint02, PRIVILEGE_KERLEL);
+	init_idt_desc(INT_VECTOR_IRQ0 + 3, DA_386IGate, hwint03, PRIVILEGE_KERLEL);
+	init_idt_desc(INT_VECTOR_IRQ0 + 4, DA_386IGate, hwint04, PRIVILEGE_KERLEL);
+	init_idt_desc(INT_VECTOR_IRQ0 + 5, DA_386IGate, hwint05, PRIVILEGE_KERLEL);
+	init_idt_desc(INT_VECTOR_IRQ0 + 6, DA_386IGate, hwint06, PRIVILEGE_KERLEL);
+	init_idt_desc(INT_VECTOR_IRQ0 + 7, DA_386IGate, hwint07, PRIVILEGE_KERLEL);
+
+	/* 8259A 从片 */
+	init_idt_desc(INT_VECTOR_IRQ8 + 0, DA_386IGate, hwint08, PRIVILEGE_KERLEL);
+	init_idt_desc(INT_VECTOR_IRQ8 + 1, DA_386IGate, hwint09, PRIVILEGE_KERLEL);
+	init_idt_desc(INT_VECTOR_IRQ8 + 2, DA_386IGate, hwint10, PRIVILEGE_KERLEL);
+	init_idt_desc(INT_VECTOR_IRQ8 + 3, DA_386IGate, hwint11, PRIVILEGE_KERLEL);
+	init_idt_desc(INT_VECTOR_IRQ8 + 4, DA_386IGate, hwint12, PRIVILEGE_KERLEL);
+	init_idt_desc(INT_VECTOR_IRQ8 + 5, DA_386IGate, hwint13, PRIVILEGE_KERLEL);
+	init_idt_desc(INT_VECTOR_IRQ8 + 6, DA_386IGate, hwint14, PRIVILEGE_KERLEL);
+	init_idt_desc(INT_VECTOR_IRQ8 + 7, DA_386IGate, hwint15, PRIVILEGE_KERLEL);
 
 	k_print_str("init idt finished\n");
 }
