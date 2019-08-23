@@ -9,7 +9,7 @@ PUBLIC DESCRIPTOR	gdt[GDT_SIZE];
 PUBLIC t_8		idt_ptr[6];		// 0-15:limit	16-47:base
 PUBLIC GATE		idt[IDT_SIZE];
 
-PUBLIC void c_start()
+PUBLIC void start()
 {
 	/* 拷贝GDT */
 	memcpy(&gdt, (void*)(*(t_32*)(&gdt_ptr[2])), *((t_16*)(&gdt_ptr[0])));
@@ -29,5 +29,5 @@ PUBLIC void c_start()
 	init_idt();
 	init_8259a();
 
-	k_print_str("c start finished\n");
+	k_print_str("start finished\n");
 }
