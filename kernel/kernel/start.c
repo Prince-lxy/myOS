@@ -1,7 +1,6 @@
 #include "const.h"
 #include "type.h"
 #include "protect.h"
-#include "global.h"
 #include "string.h"
 
 PUBLIC t_8		gdt_ptr[6];		// 0-15:limit	16-47:base
@@ -19,6 +18,9 @@ PUBLIC void start()
 	t_32* p_gdt_base = (t_32*)(&gdt_ptr[2]);
 	*p_gdt_limit = GDT_SIZE * sizeof(DESCRIPTOR);
 	*p_gdt_base = (t_32)&gdt;
+
+	/* 修改 SELECTOR_VIDEO 的特权级为 3 */
+	gdt[SELECTOR_VIDEO >> 3].attr1 |= DA_DPL3;
 
 	/* 更新 idt_ptr 内容 */
 	t_16* p_idt_limit = (t_16*)(&idt_ptr[0]);

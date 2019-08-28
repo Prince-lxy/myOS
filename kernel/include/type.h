@@ -1,3 +1,6 @@
+#ifndef TYPE_H
+#define TYPE_H
+
 /* 标准类型 */
 typedef unsigned int	t_32;
 typedef unsigned short	t_16;
@@ -8,3 +11,5 @@ typedef unsigned int    t_port;
 
 /* 函数类型 */
 typedef void (*t_int_handler) ();
+
+#endif /* TYPE_H */

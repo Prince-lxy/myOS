@@ -1,7 +1,6 @@
 #include "const.h"
 #include "type.h"
 #include "string.h"
-#include "protect.h"
 #include "global.h"
 
 PUBLIC char err_description[][64] = {
@@ -68,45 +67,45 @@ PUBLIC void init_idt_desc(t_8 vector_num, t_8 desc_type, t_int_handler handler, 
 PUBLIC void init_idt()
 {
 	/* X86 保护模式 0x0-0x1f */
-	init_idt_desc(0, DA_386IGate, divide_error, PRIVILEGE_KERLEL);
-	init_idt_desc(1, DA_386IGate, debug, PRIVILEGE_KERLEL);
-	init_idt_desc(2, DA_386IGate, nmi, PRIVILEGE_KERLEL);
-	init_idt_desc(3, DA_386IGate, breakpoint_exception, PRIVILEGE_KERLEL);
-	init_idt_desc(4, DA_386IGate, overflow, PRIVILEGE_KERLEL);
-	init_idt_desc(5, DA_386IGate, bounds_range_exceeded, PRIVILEGE_KERLEL);
-	init_idt_desc(6, DA_386IGate, undefined_opcode, PRIVILEGE_KERLEL);
-	init_idt_desc(7, DA_386IGate, no_machine, PRIVILEGE_KERLEL);
-	init_idt_desc(8, DA_386IGate, double_fault, PRIVILEGE_KERLEL);
-	init_idt_desc(9, DA_386IGate, copr_seg_overrun, PRIVILEGE_KERLEL);
-	init_idt_desc(10, DA_386IGate, inval_tss, PRIVILEGE_KERLEL);
-	init_idt_desc(11, DA_386IGate, segment_not_present, PRIVILEGE_KERLEL);
-	init_idt_desc(12, DA_386IGate, stack_exception, PRIVILEGE_KERLEL);
-	init_idt_desc(13, DA_386IGate, general_protection, PRIVILEGE_KERLEL);
-	init_idt_desc(14, DA_386IGate, page_fault, PRIVILEGE_KERLEL);
-	init_idt_desc(16, DA_386IGate, math_fault, PRIVILEGE_KERLEL);
-	init_idt_desc(17, DA_386IGate, align_check, PRIVILEGE_KERLEL);
-	init_idt_desc(18, DA_386IGate, machine_check, PRIVILEGE_KERLEL);
-	init_idt_desc(19, DA_386IGate, float_point_exception, PRIVILEGE_KERLEL);
+	init_idt_desc(0, DA_386IGate, divide_error, DA_DPL0);
+	init_idt_desc(1, DA_386IGate, debug, DA_DPL0);
+	init_idt_desc(2, DA_386IGate, nmi, DA_DPL0);
+	init_idt_desc(3, DA_386IGate, breakpoint_exception, DA_DPL0);
+	init_idt_desc(4, DA_386IGate, overflow, DA_DPL0);
+	init_idt_desc(5, DA_386IGate, bounds_range_exceeded, DA_DPL0);
+	init_idt_desc(6, DA_386IGate, undefined_opcode, DA_DPL0);
+	init_idt_desc(7, DA_386IGate, no_machine, DA_DPL0);
+	init_idt_desc(8, DA_386IGate, double_fault, DA_DPL0);
+	init_idt_desc(9, DA_386IGate, copr_seg_overrun, DA_DPL0);
+	init_idt_desc(10, DA_386IGate, inval_tss, DA_DPL0);
+	init_idt_desc(11, DA_386IGate, segment_not_present, DA_DPL0);
+	init_idt_desc(12, DA_386IGate, stack_exception, DA_DPL0);
+	init_idt_desc(13, DA_386IGate, general_protection, DA_DPL0);
+	init_idt_desc(14, DA_386IGate, page_fault, DA_DPL0);
+	init_idt_desc(16, DA_386IGate, math_fault, DA_DPL0);
+	init_idt_desc(17, DA_386IGate, align_check, DA_DPL0);
+	init_idt_desc(18, DA_386IGate, machine_check, DA_DPL0);
+	init_idt_desc(19, DA_386IGate, float_point_exception, DA_DPL0);
 
 	/* 8259A 主片 */
-	init_idt_desc(INT_VECTOR_IRQ0 + 0, DA_386IGate, hwint00, PRIVILEGE_KERLEL);
-	init_idt_desc(INT_VECTOR_IRQ0 + 1, DA_386IGate, hwint01, PRIVILEGE_KERLEL);
-	init_idt_desc(INT_VECTOR_IRQ0 + 2, DA_386IGate, hwint02, PRIVILEGE_KERLEL);
-	init_idt_desc(INT_VECTOR_IRQ0 + 3, DA_386IGate, hwint03, PRIVILEGE_KERLEL);
-	init_idt_desc(INT_VECTOR_IRQ0 + 4, DA_386IGate, hwint04, PRIVILEGE_KERLEL);
-	init_idt_desc(INT_VECTOR_IRQ0 + 5, DA_386IGate, hwint05, PRIVILEGE_KERLEL);
-	init_idt_desc(INT_VECTOR_IRQ0 + 6, DA_386IGate, hwint06, PRIVILEGE_KERLEL);
-	init_idt_desc(INT_VECTOR_IRQ0 + 7, DA_386IGate, hwint07, PRIVILEGE_KERLEL);
+	init_idt_desc(INT_VECTOR_IRQ0 + 0, DA_386IGate, hwint00, DA_DPL0);
+	init_idt_desc(INT_VECTOR_IRQ0 + 1, DA_386IGate, hwint01, DA_DPL0);
+	init_idt_desc(INT_VECTOR_IRQ0 + 2, DA_386IGate, hwint02, DA_DPL0);
+	init_idt_desc(INT_VECTOR_IRQ0 + 3, DA_386IGate, hwint03, DA_DPL0);
+	init_idt_desc(INT_VECTOR_IRQ0 + 4, DA_386IGate, hwint04, DA_DPL0);
+	init_idt_desc(INT_VECTOR_IRQ0 + 5, DA_386IGate, hwint05, DA_DPL0);
+	init_idt_desc(INT_VECTOR_IRQ0 + 6, DA_386IGate, hwint06, DA_DPL0);
+	init_idt_desc(INT_VECTOR_IRQ0 + 7, DA_386IGate, hwint07, DA_DPL0);
 
 	/* 8259A 从片 */
-	init_idt_desc(INT_VECTOR_IRQ8 + 0, DA_386IGate, hwint08, PRIVILEGE_KERLEL);
-	init_idt_desc(INT_VECTOR_IRQ8 + 1, DA_386IGate, hwint09, PRIVILEGE_KERLEL);
-	init_idt_desc(INT_VECTOR_IRQ8 + 2, DA_386IGate, hwint10, PRIVILEGE_KERLEL);
-	init_idt_desc(INT_VECTOR_IRQ8 + 3, DA_386IGate, hwint11, PRIVILEGE_KERLEL);
-	init_idt_desc(INT_VECTOR_IRQ8 + 4, DA_386IGate, hwint12, PRIVILEGE_KERLEL);
-	init_idt_desc(INT_VECTOR_IRQ8 + 5, DA_386IGate, hwint13, PRIVILEGE_KERLEL);
-	init_idt_desc(INT_VECTOR_IRQ8 + 6, DA_386IGate, hwint14, PRIVILEGE_KERLEL);
-	init_idt_desc(INT_VECTOR_IRQ8 + 7, DA_386IGate, hwint15, PRIVILEGE_KERLEL);
+	init_idt_desc(INT_VECTOR_IRQ8 + 0, DA_386IGate, hwint08, DA_DPL0);
+	init_idt_desc(INT_VECTOR_IRQ8 + 1, DA_386IGate, hwint09, DA_DPL0);
+	init_idt_desc(INT_VECTOR_IRQ8 + 2, DA_386IGate, hwint10, DA_DPL0);
+	init_idt_desc(INT_VECTOR_IRQ8 + 3, DA_386IGate, hwint11, DA_DPL0);
+	init_idt_desc(INT_VECTOR_IRQ8 + 4, DA_386IGate, hwint12, DA_DPL0);
+	init_idt_desc(INT_VECTOR_IRQ8 + 5, DA_386IGate, hwint13, DA_DPL0);
+	init_idt_desc(INT_VECTOR_IRQ8 + 6, DA_386IGate, hwint14, DA_DPL0);
+	init_idt_desc(INT_VECTOR_IRQ8 + 7, DA_386IGate, hwint15, DA_DPL0);
 
 	k_print_str("init idt finished\n");
 }

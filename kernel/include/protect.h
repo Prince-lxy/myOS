@@ -1,3 +1,9 @@
+#ifndef PROTECT_H
+#define PROTECT_H
+
+#include "const.h"
+#include "type.h"
+
 /* 段描述符 */
 typedef struct s_descriptor
 {
@@ -19,15 +25,48 @@ typedef struct s_gate
 	t_16	offset_high;			// OFFSET HIGH
 }GATE;
 
+/* TSS */
+typedef struct s_tss
+{
+	t_32	backlink;
+	t_32	esp0;
+	t_32	ss0;
+	t_32	esp1;
+	t_32	ss1;
+	t_32	esp2;
+	t_32	ss2;
+	t_32	cr3;
+	t_32	eip;
+	t_32	eflags;
+	t_32	eax;
+	t_32	ecx;
+	t_32	edx;
+	t_32	ebx;
+	t_32	esp;
+	t_32	ebp;
+	t_32	esi;
+	t_32	edi;
+	t_32	es;
+	t_32	cs;
+	t_32	ss;
+	t_32	ds;
+	t_32	fs;
+	t_32	gs;
+	t_32	ldt;
+	t_16	trap;
+	t_16	iobase;
+}TSS;
+
+
+
 /* 段描述符属性 */
-#define DA_32		0x4000
-#define DA_LIMIT_4K	0x8000
+#define DA_32			0x4000
+#define DA_LIMIT_4K		0x8000
 
 #define	DA_DPL0			0x00		// DPL = 0
 #define	DA_DPL1			0x20		// DPL = 1
 #define	DA_DPL2			0x40		// DPL = 2
 #define	DA_DPL3			0x60		// DPL = 3
-#define	PRIVILEGE_KERLEL	0x00		// DPL = 0
 
 #define	DA_DR			0x90		// Read-Only
 #define	DA_DRW			0x92		// Read/Write
@@ -44,11 +83,15 @@ typedef struct s_gate
 #define	DA_386IGate		0x8E		// 32-bit Interrupt Gate
 #define	DA_386TGate		0x8F		// 32-bit Trap Gate
 
-#define SELECTOR_KERNEL_X	0x10
-
-/* 中断向量 */
-#define INT_VECTOR_IRQ0         0x20
-#define INT_VECTOR_IRQ8         0x28
+/* 选择子属性 */
+#define SA_RPL_MASK		0xfffc
+#define SA_RPL0 		0
+#define SA_RPL1 		1
+#define SA_RPL2 		2
+#define SA_RPL3 		3
+#define SA_TI_MASK		0xfffb
+#define SA_TIG  		0
+#define SA_TIL  		4
 
 /* 中断处理函数 */
 void divide_error();
@@ -90,3 +133,10 @@ void hwint15();
 
 PUBLIC void init_idt();
 PUBLIC void init_8259a();
+
+PUBLIC void init_idt_desc(t_8 vector_num, t_8 desc_type, t_int_handler handler, t_8 privilege);
+PUBLIC void init_descriptor(DESCRIPTOR * p_desc, t_32 base, t_32 limit, t_16 attribute);
+PUBLIC t_32 seg2phys(t_16 seg);
+#define vir2phys(seg_base, vir) (t_32)(((t_32)(seg_base)) + ((t_32)(vir)))
+
+#endif /* PROTECT_H */

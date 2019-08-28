@@ -118,7 +118,7 @@ exception:
 	push %1
 	call irq_handler
 	add esp, 4
-	hlt
+	iretd
 %endmacro
 
 ALIGN 16

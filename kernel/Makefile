@@ -2,7 +2,7 @@
 ASM = nasm
 CC = gcc
 LD = ld
-ASMFLAG = -f elf32
+ASMFLAG = -f elf32 -I include/
 ASMFLAG_BOOT = -I boot/include/
 CFLAG = -I include -m32 -fno-builtin -fno-stack-protector
 LDFLAG = -s -m elf_i386 -Ttext 0x30400
@@ -14,10 +14,13 @@ OBJS = kernel/kernel.o
 OBJS += kernel/start.o
 OBJS += kernel/8259a.o
 OBJS += kernel/idt.o
+OBJS += kernel/main.o
+OBJS += kernel/protect.o
 OBJS += lib/libstr.o
 OBJS += lib/libports.o
 OBJS += lib/libprint.o
 OBJS += lib/libidt.o
+OBJS += lib/libstring.o
 
 ### target
 all: $(BOOTLOADER) $(KERNEL) floppy copy insert
@@ -34,8 +37,8 @@ boot/loader.bin: boot/loader.asm boot/include/fat12.inc boot/include/pm.inc \
 $(KERNEL): $(OBJS)
 	$(LD) $(LDFLAG) -o $@ $^
 
-kernel/kernel.o: kernel/kernel.asm
-	$(ASM) $(ASMFLAG) -o $@ $^
+kernel/kernel.o: kernel/kernel.asm include/const.inc
+	$(ASM) $(ASMFLAG) -o $@ $<
 
 kernel/start.o: kernel/start.c include/const.h include/type.h \
  include/protect.h include/global.h include/string.h
@@ -47,6 +50,14 @@ kernel/8259a.o: kernel/8259a.c include/const.h include/type.h \
 
 kernel/idt.o: kernel/idt.c include/const.h include/type.h include/string.h \
  include/global.h include/protect.h
+	$(CC) $(CFLAG) -c -o $@ $<
+
+kernel/main.o: kernel/main.c include/const.h include/type.h include/string.h \
+ include/protect.h include/process.h include/global.h
+	$(CC) $(CFLAG) -c -o $@ $<
+
+kernel/protect.o: kernel/protect.c include/const.h include/type.h \
+ include/protect.h include/global.h
 	$(CC) $(CFLAG) -c -o $@ $<
 
 ### lib asm
@@ -61,6 +72,9 @@ lib/libidt.o: lib/libidt.asm
 
 ### lib c
 lib/libprint.o: lib/libprint.c include/const.h include/string.h
+	$(CC) $(CFLAG) -c -o $@ $<
+
+lib/libstring.o: lib/libstring.c include/const.h
 	$(CC) $(CFLAG) -c -o $@ $<
 
 ### floppy
