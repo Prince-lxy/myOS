@@ -1,3 +1,10 @@
+extern tss
+extern stack_top
+extern p_process_table
+
+extern exception_handler
+extern irq_handler
+
 global divide_error
 global debug
 global nmi
@@ -35,8 +42,7 @@ global hwint13
 global hwint14
 global hwint15
 
-extern exception_handler
-extern irq_handler
+global process_switching
 
 ;; X86 保护模式中断向量表 0x0 - 0x1f
 divide_error:
@@ -115,10 +121,26 @@ exception:
 
 ;; 8259A 中断控制程序
 %macro hwint_handler 1
+	sub esp, 4
+	pushad
+	push ds
+	push es
+	push fs
+	push gs
+
+	mov dx, ss				;; kernel level 0
+	mov ds, dx
+	mov es, dx
+	mov esp, stack_top			;; kernel stack
+
 	push %1
 	call irq_handler
 	add esp, 4
-	iretd
+
+	mov al, 0x20				;; EOI
+	out 0x20, al
+
+	jmp process_switching
 %endmacro
 
 ALIGN 16
@@ -169,3 +191,16 @@ hwint14:					;; irq14 硬盘
 ALIGN 16
 hwint15:					;; irq15 保留
 	hwint_handler 15
+
+process_switching:
+	mov esp, [p_process_table]
+	lldt [esp + 18 * 4]			;; ldt selector
+	lea eax, [esp + 18 * 4]			;; stack top
+	mov dword [tss + 4], eax		;; tss.esp0
+	pop gs
+	pop fs
+	pop es
+	pop ds
+	popad
+	add esp, 4
+	iretd

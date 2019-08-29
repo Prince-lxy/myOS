@@ -4,9 +4,12 @@ extern start
 extern gdt_ptr
 extern idt_ptr
 extern init_8259a
-extern p_process_A
+extern p_process_table
 extern tss
 extern main
+extern process_switching
+
+global stack_top
 
 [section .bss]
 kernel_stack:	resb	2 * 1024
@@ -37,19 +40,6 @@ K:
 	mov al, 'K'
 	mov [gs:((80 * 0 + 39) * 2)], ax
 
-	jmp SELECTOR_KERNEL_X:restart
+	jmp SELECTOR_KERNEL_X:process_switching
 
 	jmp $
-
-restart:
-	mov esp, [p_process_A]
-	lldt [esp + 18 * 4]			;; ldt selector
-	lea eax, [esp + 18 * 4]			;; stack top
-	mov dword [tss + 4], eax
-	pop gs
-	pop fs
-	pop es
-	pop ds
-	popad
-	add esp, 4
-	iretd

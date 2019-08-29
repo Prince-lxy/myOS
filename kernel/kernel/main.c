@@ -5,7 +5,7 @@ PUBLIC PROCESS		process_table[NUM_TASKS];
 PUBLIC TSS		tss[NUM_TASKS];
 PUBLIC t_8		task_stack[NUM_TASKS][STACK_SIZE_TOTAL];
 
-PUBLIC PROCESS*		p_process_A = &process_table[0];
+PUBLIC PROCESS*		p_process_table = &process_table[0];
 
 PUBLIC void delay(int time)
 {
@@ -49,6 +49,9 @@ PUBLIC void init_process_A()
 	p_process->ldts[0].attr1 = DA_DRW | DA_DPL3;
 	memcpy(&p_process->ldts[1], &gdt[SELECTOR_KERNEL_X >> 3], sizeof(DESCRIPTOR));
 	p_process->ldts[1].attr1 = DA_X | DA_DPL3;
+
+	/* pid */
+	p_process->pid = 0;
 
 	/* tss */
 	memset(&tss[0], 0, sizeof(TSS));
