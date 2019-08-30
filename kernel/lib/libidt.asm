@@ -119,6 +119,8 @@ exception:
 	add esp, 4*2				;; 让栈顶指向 eip (eip -> cs -> eflags)
 	hlt
 
+re_int	dd	0
+
 ;; 8259A 中断控制程序
 %macro hwint_handler 1
 	sub esp, 4
@@ -131,16 +133,35 @@ exception:
 	mov dx, ss				;; kernel level 0
 	mov ds, dx
 	mov es, dx
-	mov esp, stack_top			;; kernel stack
-
-	push %1
-	call irq_handler
-	add esp, 4
 
 	mov al, 0x20				;; EOI
 	out 0x20, al
 
+	inc byte [gs:(39 * 2)]
+
+	inc dword [re_int]
+	cmp dword [re_int], 1
+	jne .end
+
+	mov esp, stack_top			;; kernel stack
+
+	sti
+	push %1
+	call irq_handler
+	add esp, 4
+	cli
+
+	dec dword [re_int]
 	jmp process_switching
+.end:
+	dec dword [re_int]
+	pop gs
+	pop fs
+	pop es
+	pop ds
+	popad
+	add esp, 4
+	iretd
 %endmacro
 
 ALIGN 16
