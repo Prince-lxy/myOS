@@ -19,9 +19,12 @@ PUBLIC void delay(int time)
 
 void process_A()
 {
+	int i = 0;
 	k_print_str("process_A:");
 	while(1){
 		k_print_str("A");
+		k_print_hex(i++);
+		k_print_str(" ");
 		delay(1);
 	}
 }
