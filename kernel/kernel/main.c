@@ -2,7 +2,7 @@
 #include "global.h"
 
 PUBLIC PROCESS		process_table[NUM_TASKS];
-PUBLIC TSS		tss[NUM_TASKS];
+PUBLIC TSS		tss;
 PUBLIC t_8		task_stack[NUM_TASKS][STACK_SIZE_TOTAL];
 
 PUBLIC PROCESS*		p_process_table = &process_table[0];
@@ -56,20 +56,25 @@ PUBLIC void init_process_A()
 	/* pid */
 	p_process->pid = 0;
 
-	/* tss */
-	memset(&tss[0], 0, sizeof(TSS));
-	tss[0].ss0 = SELECTOR_KERNEL_RW;
-
-	/* GDT SELECTOR_LDT SELECTOR_TSS */
+	/* GDT SELECTOR_LDT */
 	init_descriptor(&gdt[SELECTOR_LDT >> 3], vir2phys(seg2phys(SELECTOR_KERNEL_RW), process_table[0].ldts),
 			LDT_SIZE * sizeof(DESCRIPTOR), DA_LDT);
-	init_descriptor(&gdt[SELECTOR_TSS >> 3], vir2phys(seg2phys(SELECTOR_KERNEL_RW), &tss[0]),
-			sizeof(TSS), DA_386TSS);
-
 	k_print_str("main finished\n");
+}
+
+void init_tss()
+{
+	/* tss */
+	memset(&tss, 0, sizeof(TSS));
+	tss.ss0 = SELECTOR_KERNEL_RW;
+
+	/* GDT SELECTOR_TSS */
+	init_descriptor(&gdt[SELECTOR_TSS >> 3], vir2phys(seg2phys(SELECTOR_KERNEL_RW), &tss),
+			sizeof(TSS), DA_386TSS);
 }
 
 PUBLIC void main()
 {
+	init_tss();
 	init_process_A();
 }

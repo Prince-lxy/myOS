@@ -13,5 +13,5 @@ EXTERN GATE		idt[IDT_SIZE];
 
 /* 任务表 任务状态表 任务堆栈表 */
 EXTERN PROCESS		process_table[NUM_TASKS];
-EXTERN TSS		tss[NUM_TASKS];
+EXTERN TSS		tss;
 EXTERN t_8		task_stack[NUM_TASKS][STACK_SIZE_TOTAL];
