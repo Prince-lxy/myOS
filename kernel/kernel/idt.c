@@ -33,6 +33,14 @@ PUBLIC void irq_handler(int irq)
 	k_print_str("\n");
 }
 
+PUBLIC void clock_handler(int irq)
+{
+	p_process_table++;
+	if (p_process_table >= process_table + NUM_TASKS) {
+		p_process_table = process_table;
+	}
+}
+
 PUBLIC void exception_handler(int vec_num, int err_code, int eip, int cs, int eflags)
 {
 	k_print_str("Exception --> ");

@@ -15,3 +15,4 @@ EXTERN GATE		idt[IDT_SIZE];
 EXTERN PROCESS		process_table[NUM_TASKS];
 EXTERN TSS		tss;
 EXTERN t_8		task_stack[NUM_TASKS][STACK_SIZE_TOTAL];
+EXTERN PROCESS*		p_process_table;

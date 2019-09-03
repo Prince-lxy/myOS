@@ -4,6 +4,7 @@ extern p_process_table
 
 extern exception_handler
 extern irq_handler
+extern clock_handler
 
 global divide_error
 global debug
@@ -166,7 +167,45 @@ re_int	dd	0
 
 ALIGN 16
 hwint00:					;; irq0 时钟
-	hwint_handler 0
+	sub esp, 4
+	pushad
+	push ds
+	push es
+	push fs
+	push gs
+
+	mov dx, ss				;; kernel level 0
+	mov ds, dx
+	mov es, dx
+
+	mov al, 0x20				;; EOI
+	out 0x20, al
+
+	inc byte [gs:(39 * 2)]
+
+	inc dword [re_int]
+	cmp dword [re_int], 1
+	jne .end
+
+	mov esp, stack_top			;; kernel stack
+
+	sti
+	push 0
+	call clock_handler
+	add esp, 4
+	cli
+
+	dec dword [re_int]
+	jmp process_switching
+.end:
+	dec dword [re_int]
+	pop gs
+	pop fs
+	pop es
+	pop ds
+	popad
+	add esp, 4
+	iretd
 ALIGN 16
 hwint01:					;; irq1 键盘
 	hwint_handler 1

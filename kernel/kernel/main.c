@@ -17,6 +17,18 @@ PUBLIC void delay(int time)
 	}
 }
 
+void process_B()
+{
+	int i = 0;
+	k_print_str("process_B:");
+	while(1){
+		k_print_str("B");
+		k_print_hex(i++);
+		k_print_str(" ");
+		delay(1);
+	}
+}
+
 void process_A()
 {
 	int i = 0;
@@ -76,6 +88,7 @@ PUBLIC void main()
 {
 	init_tss();
 	init_process(0, process_A);
+	init_process(1, process_B);
 
 	k_print_str("main finished\n");
 }
