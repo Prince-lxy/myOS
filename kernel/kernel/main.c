@@ -59,7 +59,6 @@ PUBLIC void init_process_A()
 	/* GDT SELECTOR_LDT */
 	init_descriptor(&gdt[SELECTOR_LDT >> 3], vir2phys(seg2phys(SELECTOR_KERNEL_RW), process_table[0].ldts),
 			LDT_SIZE * sizeof(DESCRIPTOR), DA_LDT);
-	k_print_str("main finished\n");
 }
 
 void init_tss()
@@ -77,4 +76,6 @@ PUBLIC void main()
 {
 	init_tss();
 	init_process_A();
+
+	k_print_str("main finished\n");
 }
