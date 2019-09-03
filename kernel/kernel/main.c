@@ -29,9 +29,9 @@ void process_A()
 	}
 }
 
-PUBLIC void init_process_A()
+PUBLIC void init_process(int pid, void* func)
 {
-	PROCESS* p_process = &process_table[0];
+	PROCESS* p_process = &process_table[pid];
 
 	/* regs */
 	p_process->regs.ds = (0 & SA_RPL_MASK & SA_TI_MASK) | SA_RPL3 | SA_TIL;
@@ -40,12 +40,12 @@ PUBLIC void init_process_A()
 	p_process->regs.ss = (0 & SA_RPL_MASK & SA_TI_MASK) | SA_RPL3 | SA_TIL;
 	p_process->regs.cs = (8 & SA_RPL_MASK & SA_TI_MASK) | SA_RPL3 | SA_TIL;
 	p_process->regs.gs = (SELECTOR_VIDEO & SA_RPL_MASK) | SA_RPL3;
-	p_process->regs.eip = (t_32)process_A;
-	p_process->regs.esp = (t_32)task_stack[0] + STACK_SIZE_TOTAL;
+	p_process->regs.eip = (t_32)func;
+	p_process->regs.esp = (t_32)task_stack[pid] + STACK_SIZE_TOTAL;
 	p_process->regs.eflags = 0x1200;
 
 	/* ldt selector */
-	p_process->ldt_selector = SELECTOR_LDT;
+	p_process->ldt_selector = SELECTOR_LDT + (0x8 * pid);
 
 	/* ldts[LDT_SIZE] */
 	memcpy(&p_process->ldts[0], &gdt[SELECTOR_KERNEL_RW >> 3], sizeof(DESCRIPTOR));
@@ -54,11 +54,11 @@ PUBLIC void init_process_A()
 	p_process->ldts[1].attr1 = DA_X | DA_DPL3;
 
 	/* pid */
-	p_process->pid = 0;
+	p_process->pid = pid;
 
-	/* GDT SELECTOR_LDT */
-	init_descriptor(&gdt[SELECTOR_LDT >> 3], vir2phys(seg2phys(SELECTOR_KERNEL_RW), process_table[0].ldts),
-			LDT_SIZE * sizeof(DESCRIPTOR), DA_LDT);
+	/* GDT LDT */
+	init_descriptor(&gdt[(SELECTOR_LDT + (0x8 * pid)) >> 3], vir2phys(seg2phys(SELECTOR_KERNEL_RW),
+			 process_table[0].ldts), LDT_SIZE * sizeof(DESCRIPTOR), DA_LDT);
 }
 
 void init_tss()
@@ -75,7 +75,7 @@ void init_tss()
 PUBLIC void main()
 {
 	init_tss();
-	init_process_A();
+	init_process(0, process_A);
 
 	k_print_str("main finished\n");
 }
