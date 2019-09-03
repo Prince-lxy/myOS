@@ -24,7 +24,7 @@
 #define INT_VECTOR_IRQ8         0x28
 
 /* 进程总个数 */
-#define NUM_TASKS		2
+#define NUM_TASKS		3
 
 /* 进程栈大小 */
 #define STACK_SIZE_TOTAL	1024
