@@ -6,6 +6,7 @@ INT_S_MASK	equ	0xa1
 extern tss
 extern stack_top
 extern p_process_table
+extern irq_table
 
 extern exception_handler
 extern irq_handler
@@ -49,6 +50,8 @@ global hwint14
 global hwint15
 
 global process_switching
+global disable_irq
+global enable_irq
 
 ;; X86 保护模式中断向量表 0x0 - 0x1f
 divide_error:
@@ -128,7 +131,7 @@ exception:
 re_int	dd	0
 
 ;; 8259A 中断控制程序
-%macro hwint_handler_master 2
+%macro hwint_handler_master 1
 	sub esp, 4
 	pushad
 	push ds
@@ -157,7 +160,7 @@ re_int	dd	0
 
 	sti
 	push %1
-	call %2
+	call [irq_table + 4 * %1]
 	add esp, 4
 	cli
 
@@ -178,7 +181,7 @@ re_int	dd	0
 	iretd
 %endmacro
 
-%macro hwint_handler_slave 2
+%macro hwint_handler_slave 1
 	sub esp, 4
 	pushad
 	push ds
@@ -207,7 +210,7 @@ re_int	dd	0
 
 	sti
 	push %1
-	call %2
+	call [irq_table + 4 * %1]
 	add esp, 4
 	cli
 
@@ -230,52 +233,52 @@ re_int	dd	0
 
 ALIGN 16
 hwint00:					;; irq0 时钟
-	hwint_handler_master 0, clock_handler
+	hwint_handler_master 0
 ALIGN 16
 hwint01:					;; irq1 键盘
-	hwint_handler_master 1, irq_handler
+	hwint_handler_master 1
 ALIGN 16
 hwint02:					;; irq2 级联从片
-	hwint_handler_master 2, irq_handler
+	hwint_handler_master 2
 ALIGN 16
 hwint03:					;; irq3 串口2
-	hwint_handler_master 3, irq_handler
+	hwint_handler_master 3
 ALIGN 16
 hwint04:					;; irq4 串口1
-	hwint_handler_master 4, irq_handler
+	hwint_handler_master 4
 ALIGN 16
 hwint05:					;; irq5 并口2
-	hwint_handler_master 5, irq_handler
+	hwint_handler_master 5
 ALIGN 16
 hwint06:					;; irq6 软盘
-	hwint_handler_master 6, irq_handler
+	hwint_handler_master 6
 ALIGN 16
 hwint07:					;; irq7 并口1
-	hwint_handler_master 7, irq_handler
+	hwint_handler_master 7
 ALIGN 16
 hwint08:					;; irq8 实时钟
-	hwint_handler_slave 8, irq_handler
+	hwint_handler_slave 8
 ALIGN 16
 hwint09:					;; irq9 int 0xa
-	hwint_handler_slave 9, irq_handler
+	hwint_handler_slave 9
 ALIGN 16
 hwint10:					;; irq10 保留
-	hwint_handler_slave 10, irq_handler
+	hwint_handler_slave 10
 ALIGN 16
 hwint11:					;; irq11 保留
-	hwint_handler_slave 11, irq_handler
+	hwint_handler_slave 11
 ALIGN 16
 hwint12:					;; irq12 PS2 鼠标
-	hwint_handler_slave 12, irq_handler
+	hwint_handler_slave 12
 ALIGN 16
 hwint13:					;; irq13 协处理器
-	hwint_handler_slave 13, irq_handler
+	hwint_handler_slave 13
 ALIGN 16
 hwint14:					;; irq14 硬盘
-	hwint_handler_slave 14, irq_handler
+	hwint_handler_slave 14
 ALIGN 16
 hwint15:					;; irq15 保留
-	hwint_handler_slave 15, irq_handler
+	hwint_handler_slave 15
 
 process_switching:
 	mov esp, [p_process_table]
@@ -289,3 +292,57 @@ process_switching:
 	popad
 	add esp, 4
 	iretd
+
+;; 屏蔽 irq
+disable_irq:
+	mov ecx, [esp + 4]			;; irq
+	pushf
+	cli
+	mov ah, 1
+	rol ah, cl
+	cmp cl, 8
+	jae disable_8
+disable_0:
+	in al, INT_M_MASK
+	test al, ah
+	jnz dis_already
+	or al, ah
+	out INT_M_MASK, al
+	popf
+	mov eax, 1
+	ret
+disable_8:
+	in al, INT_S_MASK
+	test al, ah
+	jnz dis_already
+	or al, ah
+	out INT_S_MASK, al
+	popf
+	mov eax, 1
+	ret
+dis_already:
+	popf
+	xor eax, eax				;; already disabled
+	ret
+
+;; 开启 irq
+enable_irq:
+	mov ecx, [esp + 4]
+	pushf
+	cli
+	mov ah, ~1
+	rol ah, cl
+	cmp cl, 8
+	jae enable_8
+enable_0:
+	in al, INT_M_MASK
+	and al, ah
+	out INT_M_MASK, al
+	popf
+	ret
+enable_8:
+	in al, INT_S_MASK
+	and al, ah
+	out INT_S_MASK, al
+	popf
+	ret

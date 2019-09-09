@@ -3,6 +3,8 @@
 #include "string.h"
 #include "global.h"
 
+PUBLIC t_irq_handler    irq_table[NUM_IRQ];
+
 PUBLIC char err_description[][64] = {
 	"#DE Divide Error",
 	"#DB Debug",
@@ -60,6 +62,13 @@ PUBLIC void exception_handler(int vec_num, int err_code, int eip, int cs, int ef
 	k_print_str("\n");
 }
 
+PUBLIC void set_irq_handler(int irq, t_irq_handler handler)
+{
+	disable_irq(irq);
+	irq_table[irq] = handler;
+	enable_irq(irq);
+}
+
 PUBLIC void init_idt_desc(t_8 vector_num, t_8 desc_type, t_int_handler handler, t_8 privilege)
 {
 	GATE * gate		= &idt[vector_num];
@@ -74,6 +83,8 @@ PUBLIC void init_idt_desc(t_8 vector_num, t_8 desc_type, t_int_handler handler, 
 
 PUBLIC void init_idt()
 {
+	int i;
+
 	/* X86 保护模式 0x0-0x1f */
 	init_idt_desc(0, DA_386IGate, divide_error, DA_DPL0);
 	init_idt_desc(1, DA_386IGate, debug, DA_DPL0);
@@ -114,6 +125,14 @@ PUBLIC void init_idt()
 	init_idt_desc(INT_VECTOR_IRQ8 + 5, DA_386IGate, hwint13, DA_DPL0);
 	init_idt_desc(INT_VECTOR_IRQ8 + 6, DA_386IGate, hwint14, DA_DPL0);
 	init_idt_desc(INT_VECTOR_IRQ8 + 7, DA_386IGate, hwint15, DA_DPL0);
+
+	/* 初始化中断调用函数 */
+	for (i = 0; i < NUM_IRQ; i++) {
+		irq_table[i] = irq_handler;
+	}
+
+	/* 设置时钟中断 */
+	set_irq_handler(CLOCK_IRQ, clock_handler);
 
 	k_print_str("init idt finished\n");
 }

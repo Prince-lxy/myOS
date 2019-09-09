@@ -16,3 +16,6 @@ EXTERN PROCESS		process_table[NUM_TASKS];
 EXTERN TSS		tss;
 EXTERN t_8		task_stack[NUM_TASKS][STACK_SIZE_TOTAL];
 EXTERN PROCESS*		p_process_table;
+
+/* irq 调用函数表 */
+EXTERN t_irq_handler	irq_table[NUM_IRQ];

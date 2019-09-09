@@ -29,4 +29,7 @@
 /* 进程栈大小 */
 #define STACK_SIZE_TOTAL	1024
 
+/* irq 调用函数个数 */
+#define NUM_IRQ			16
+
 #endif /* CONST_H */

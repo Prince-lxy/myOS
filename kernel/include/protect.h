@@ -93,6 +93,24 @@ typedef struct s_tss
 #define SA_TIG  		0
 #define SA_TIL  		4
 
+/* 8259A 中断向量 */
+#define CLOCK_IRQ		0
+#define KEYBOARD_IRQ		1
+#define SLAVE_IRQ		2
+#define SERIAL2_IRQ		3
+#define SERIAL1_IRQ		4
+#define PARALLEL2_IRQ		5
+#define FLOPPY_IRQ		6
+#define PARALLEL1_IRQ		7
+#define R_CLOCK_IRQ		8
+#define INTA_IRQ		9
+#define IRQ_10			10
+#define IRQ_11			11
+#define PS2_IRQ			12
+#define COPROCESSOR		13
+#define HD_IRQ			14
+#define IRQ15			15
+
 /* 中断处理函数 */
 void divide_error();
 void debug();
@@ -131,6 +149,8 @@ void hwint13();
 void hwint14();
 void hwint15();
 
+PUBLIC int enable_irq(int irq);
+PUBLIC int disable_irq(int irq);
 PUBLIC void init_idt();
 PUBLIC void init_8259a();
 
