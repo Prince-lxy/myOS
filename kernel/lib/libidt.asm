@@ -1,3 +1,8 @@
+INT_M_CTL	equ	0x20
+INT_M_MASK	equ	0x21
+INT_S_CTL	equ	0xa0
+INT_S_MASK	equ	0xa1
+
 extern tss
 extern stack_top
 extern p_process_table
@@ -123,7 +128,7 @@ exception:
 re_int	dd	0
 
 ;; 8259A 中断控制程序
-%macro hwint_handler 1
+%macro hwint_handler_master 2
 	sub esp, 4
 	pushad
 	push ds
@@ -135,8 +140,12 @@ re_int	dd	0
 	mov ds, dx
 	mov es, dx
 
-	mov al, 0x20				;; EOI
-	out 0x20, al
+	in al, INT_M_MASK			;; disable same irq
+	or al, (1 << %1)
+	out INT_M_MASK, al
+
+	mov al, INT_M_CTL			;; EOI
+	out INT_M_CTL, al
 
 	inc byte [gs:(39 * 2)]
 
@@ -148,9 +157,63 @@ re_int	dd	0
 
 	sti
 	push %1
-	call irq_handler
+	call %2
 	add esp, 4
 	cli
+
+	in al, INT_M_MASK			;; enable same irq
+	and al, ~(1 << %1)
+	out INT_M_MASK, al
+
+	dec dword [re_int]
+	jmp process_switching
+.end:
+	dec dword [re_int]
+	pop gs
+	pop fs
+	pop es
+	pop ds
+	popad
+	add esp, 4
+	iretd
+%endmacro
+
+%macro hwint_handler_slave 2
+	sub esp, 4
+	pushad
+	push ds
+	push es
+	push fs
+	push gs
+
+	mov dx, ss				;; kernel level 0
+	mov ds, dx
+	mov es, dx
+
+	in al, INT_S_MASK			;; disable same irq
+	or al, (1 << (%1 - 8))
+	out INT_S_MASK, al
+
+	mov al, INT_S_CTL			;; EOI
+	out INT_S_CTL, al
+
+	inc byte [gs:(39 * 2)]
+
+	inc dword [re_int]
+	cmp dword [re_int], 1
+	jne .end
+
+	mov esp, stack_top			;; kernel stack
+
+	sti
+	push %1
+	call %2
+	add esp, 4
+	cli
+
+	in al, INT_S_MASK			;; enable same irq
+	and al, ~(1 << (%1 - 8))
+	out INT_S_MASK, al
 
 	dec dword [re_int]
 	jmp process_switching
@@ -167,90 +230,52 @@ re_int	dd	0
 
 ALIGN 16
 hwint00:					;; irq0 时钟
-	sub esp, 4
-	pushad
-	push ds
-	push es
-	push fs
-	push gs
-
-	mov dx, ss				;; kernel level 0
-	mov ds, dx
-	mov es, dx
-
-	mov al, 0x20				;; EOI
-	out 0x20, al
-
-	inc byte [gs:(39 * 2)]
-
-	inc dword [re_int]
-	cmp dword [re_int], 1
-	jne .end
-
-	mov esp, stack_top			;; kernel stack
-
-	sti
-	push 0
-	call clock_handler
-	add esp, 4
-	cli
-
-	dec dword [re_int]
-	jmp process_switching
-.end:
-	dec dword [re_int]
-	pop gs
-	pop fs
-	pop es
-	pop ds
-	popad
-	add esp, 4
-	iretd
+	hwint_handler_master 0, clock_handler
 ALIGN 16
 hwint01:					;; irq1 键盘
-	hwint_handler 1
+	hwint_handler_master 1, irq_handler
 ALIGN 16
 hwint02:					;; irq2 级联从片
-	hwint_handler 2
+	hwint_handler_master 2, irq_handler
 ALIGN 16
 hwint03:					;; irq3 串口2
-	hwint_handler 3
+	hwint_handler_master 3, irq_handler
 ALIGN 16
 hwint04:					;; irq4 串口1
-	hwint_handler 4
+	hwint_handler_master 4, irq_handler
 ALIGN 16
 hwint05:					;; irq5 并口2
-	hwint_handler 5
+	hwint_handler_master 5, irq_handler
 ALIGN 16
 hwint06:					;; irq6 软盘
-	hwint_handler 6
+	hwint_handler_master 6, irq_handler
 ALIGN 16
 hwint07:					;; irq7 并口1
-	hwint_handler 7
+	hwint_handler_master 7, irq_handler
 ALIGN 16
 hwint08:					;; irq8 实时钟
-	hwint_handler 8
+	hwint_handler_slave 8, irq_handler
 ALIGN 16
 hwint09:					;; irq9 int 0xa
-	hwint_handler 9
+	hwint_handler_slave 9, irq_handler
 ALIGN 16
 hwint10:					;; irq10 保留
-	hwint_handler 10
+	hwint_handler_slave 10, irq_handler
 ALIGN 16
 hwint11:					;; irq11 保留
-	hwint_handler 11
+	hwint_handler_slave 11, irq_handler
 ALIGN 16
 hwint12:					;; irq12 PS2 鼠标
-	hwint_handler 12
+	hwint_handler_slave 12, irq_handler
 ALIGN 16
 hwint13:					;; irq13 协处理器
-	hwint_handler 13
+	hwint_handler_slave 13, irq_handler
 ALIGN 16
 hwint14:					;; irq14 硬盘
-	hwint_handler 14
+	hwint_handler_slave 14, irq_handler
 ALIGN 16
 hwint15:					;; irq15 保留
-	hwint_handler 15
+	hwint_handler_slave 15, irq_handler
 
 process_switching:
 	mov esp, [p_process_table]
