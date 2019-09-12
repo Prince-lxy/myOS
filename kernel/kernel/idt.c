@@ -3,7 +3,7 @@
 #include "string.h"
 #include "global.h"
 
-PUBLIC t_irq_handler    irq_table[NUM_IRQ];
+PUBLIC t_irq_handler	irq_table[NUM_IRQ];
 PUBLIC t_sys_call	sys_call_table[NUM_SYS_CALL] = {sys_get_ticks};
 
 PUBLIC char err_description[][64] = {
