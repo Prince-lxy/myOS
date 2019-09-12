@@ -12,5 +12,6 @@ typedef unsigned int    t_port;
 /* 函数类型 */
 typedef void (*t_int_handler) ();
 typedef void (*t_irq_handler) (int irq);
+typedef void *t_sys_call;
 
 #endif /* TYPE_H */

@@ -32,4 +32,8 @@
 /* irq 调用函数个数 */
 #define NUM_IRQ			16
 
+/* 系统调用 */
+#define INT_VECTOR_SYS_CALL	0x90
+#define NUM_SYS_CALL		1
+
 #endif /* CONST_H */

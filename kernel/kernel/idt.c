@@ -4,6 +4,7 @@
 #include "global.h"
 
 PUBLIC t_irq_handler    irq_table[NUM_IRQ];
+PUBLIC t_sys_call	sys_call_table[NUM_SYS_CALL] = {sys_get_ticks};
 
 PUBLIC char err_description[][64] = {
 	"#DE Divide Error",
@@ -27,6 +28,12 @@ PUBLIC char err_description[][64] = {
 	"#MC Machine Check",
 	"#XF SIMD Floating-Point Exception"
 };
+
+PUBLIC int sys_get_ticks()
+{
+	k_print_str("+");
+	return 0;
+}
 
 PUBLIC void irq_handler(int irq)
 {
@@ -133,6 +140,9 @@ PUBLIC void init_idt()
 
 	/* 设置时钟中断 */
 	set_irq_handler(CLOCK_IRQ, clock_handler);
+
+	/* 设置系统调用中断门描述符 */
+	init_idt_desc(INT_VECTOR_SYS_CALL, DA_386IGate, sys_call, DA_DPL3);
 
 	k_print_str("init idt finished\n");
 }

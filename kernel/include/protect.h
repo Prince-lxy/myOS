@@ -159,4 +159,8 @@ PUBLIC void init_descriptor(DESCRIPTOR * p_desc, t_32 base, t_32 limit, t_16 att
 PUBLIC t_32 seg2phys(t_16 seg);
 #define vir2phys(seg_base, vir) (t_32)(((t_32)(seg_base)) + ((t_32)(vir)))
 
+PUBLIC int get_ticks();
+PUBLIC int sys_get_ticks();
+PUBLIC void sys_call();
+
 #endif /* PROTECT_H */
