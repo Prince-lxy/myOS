@@ -77,7 +77,7 @@ PUBLIC void init_idt_desc(t_8 vector_num, t_8 desc_type, t_int_handler handler, 
 	gate->offset_low	= base & 0xffff;
 	gate->selector		= SELECTOR_KERNEL_X;				// gdt + 0x10
 	gate->dcount		= 0;
-	gate->attr		= desc_type | (privilege << 5);
+	gate->attr		= desc_type | privilege;
 	gate->offset_high	= (base >> 16) & 0xffff;
 }
 
