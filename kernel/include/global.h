@@ -19,4 +19,6 @@ EXTERN PROCESS*		p_process_table;
 
 /* irq 调用函数表 */
 EXTERN t_irq_handler	irq_table[NUM_IRQ];
+
+/* sys call 系统调用函数表 */
 EXTERN t_sys_call	sys_call_table[NUM_SYS_CALL];

@@ -14,12 +14,14 @@ OBJS = kernel/kernel.o
 OBJS += kernel/start.o
 OBJS += kernel/8259a.o
 OBJS += kernel/idt.o
+OBJS += kernel/sys_call.o
 OBJS += kernel/main.o
 OBJS += kernel/protect.o
 OBJS += lib/libstr.o
 OBJS += lib/libports.o
 OBJS += lib/libprint.o
 OBJS += lib/libidt.o
+OBJS += lib/libsys_call.o
 OBJS += lib/libstring.o
 
 ### target
@@ -52,6 +54,10 @@ kernel/idt.o: kernel/idt.c include/const.h include/type.h include/string.h \
  include/global.h include/protect.h
 	$(CC) $(CFLAG) -c -o $@ $<
 
+kernel/sys_call.o: kernel/sys_call.c include/const.h include/type.h include/string.h \
+ include/global.h include/protect.h
+	$(CC) $(CFLAG) -c -o $@ $<
+
 kernel/main.o: kernel/main.c include/const.h include/type.h include/string.h \
  include/protect.h include/process.h include/global.h
 	$(CC) $(CFLAG) -c -o $@ $<
@@ -68,6 +74,9 @@ lib/libports.o: lib/libports.asm
 	$(ASM) $(ASMFLAG) -o $@ $^
 
 lib/libidt.o: lib/libidt.asm
+	$(ASM) $(ASMFLAG) -o $@ $^
+
+lib/libsys_call.o: lib/libsys_call.asm
 	$(ASM) $(ASMFLAG) -o $@ $^
 
 ### lib c

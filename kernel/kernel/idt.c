@@ -4,7 +4,6 @@
 #include "global.h"
 
 PUBLIC t_irq_handler	irq_table[NUM_IRQ];
-PUBLIC t_sys_call	sys_call_table[NUM_SYS_CALL] = {sys_get_ticks};
 
 PUBLIC char err_description[][64] = {
 	"#DE Divide Error",
@@ -28,12 +27,6 @@ PUBLIC char err_description[][64] = {
 	"#MC Machine Check",
 	"#XF SIMD Floating-Point Exception"
 };
-
-PUBLIC int sys_get_ticks()
-{
-	k_print_str("+");
-	return 0;
-}
 
 PUBLIC void irq_handler(int irq)
 {
