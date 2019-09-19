@@ -37,6 +37,7 @@ PUBLIC void irq_handler(int irq)
 
 PUBLIC void clock_handler(int irq)
 {
+	ticks++;
 	p_process_table++;
 	if (p_process_table >= process_table + NUM_TASKS) {
 		p_process_table = process_table;
@@ -136,6 +137,9 @@ PUBLIC void init_idt()
 
 	/* 设置系统调用中断门描述符 */
 	init_idt_desc(INT_VECTOR_SYS_CALL, DA_386IGate, sys_call, DA_DPL3);
+
+	/* 初始化 ticks */
+	ticks = 0;
 
 	k_print_str("init idt finished\n");
 }

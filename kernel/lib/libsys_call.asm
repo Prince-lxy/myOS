@@ -18,7 +18,14 @@ get_ticks:
 
 sys_call:
 	sub esp, 4
-	pushad
+	push eax
+	push ecx
+	push edx
+	push ebx
+	push esp
+	push ebp
+	push esi
+	push edi
 	push ds
 	push es
 	push fs
@@ -34,20 +41,24 @@ sys_call:
 
 	mov esp, stack_top			;; kernel stack
 
-	sti
 	call [sys_call_table + 4 * eax]
-	cli
 
 	mov esp, [p_process_table]
 	lldt [esp + 18 * 4]			;; ldt selector
-	lea eax, [esp + 18 * 4]			;; stack top
-	mov dword [tss + 4], eax		;; tss.esp0
+	lea esi, [esp + 18 * 4]			;; stack top
+	mov dword [tss + 4], esi		;; tss.esp0
 .end:
 	dec dword [re_int_sys_call]
 	pop gs
 	pop fs
 	pop es
 	pop ds
-	popad
-	add esp, 4
+	pop edi
+	pop esi
+	pop ebp
+	pop esp
+	pop ebx
+	pop edx
+	pop ecx
+	add esp, 8
 	iretd
