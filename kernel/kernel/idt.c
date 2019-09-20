@@ -1,6 +1,7 @@
 #include "const.h"
 #include "type.h"
 #include "string.h"
+#include "ports.h"
 #include "global.h"
 
 PUBLIC t_irq_handler	irq_table[NUM_IRQ];
@@ -140,6 +141,11 @@ PUBLIC void init_idt()
 
 	/* 初始化 ticks */
 	ticks = 0;
+
+	/* 调整时钟频率 */
+	out_byte(TIMER_MODE, RATE_GENERATOR);
+	out_byte(TIMER0, (t_8)(TIMER_FREQ/HZ));
+	out_byte(TIMER0, (t_8)((TIMER_FREQ/HZ) >> 8));
 
 	k_print_str("init idt finished\n");
 }

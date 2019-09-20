@@ -36,4 +36,11 @@
 #define INT_VECTOR_SYS_CALL	0x90
 #define NUM_SYS_CALL		1
 
+/* 8253 时钟 */
+#define	TIMER0			0x40
+#define	TIMER_MODE		0x43
+#define	RATE_GENERATOR		0x34
+#define	TIMER_FREQ		(5 * 1193182L)
+#define	HZ			1000
+
 #endif /* CONST_H */
