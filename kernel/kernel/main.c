@@ -7,14 +7,10 @@ PUBLIC t_8		task_stack[NUM_TASKS][STACK_SIZE_TOTAL];
 
 PUBLIC PROCESS*		p_process_table = &process_table[0];
 
-PUBLIC void delay(int time)
+PUBLIC void delay(int millisecond)
 {
-	int i, j, k;
-	for (i = 0; i < time; i++) {
-		for (j  = 0; j < 5000; j++) {
-			for (k = 0; k < 5000; k++) {}
-		}
-	}
+	int t = get_ticks();
+	while(((get_ticks() - t) * 1000 / HZ) < millisecond) {}
 }
 
 void process_C()
@@ -24,8 +20,10 @@ void process_C()
 	while(1){
 		k_print_str("C");
 		k_print_hex(i++);
+		k_print_str("-");
+		k_print_hex(get_ticks());
 		k_print_str(" ");
-		delay(1);
+		delay(1000);
 	}
 }
 
@@ -36,8 +34,10 @@ void process_B()
 	while(1){
 		k_print_str("B");
 		k_print_hex(i++);
+		k_print_str("-");
+		k_print_hex(get_ticks());
 		k_print_str(" ");
-		delay(1);
+		delay(1000);
 	}
 }
 
@@ -48,8 +48,10 @@ void process_A()
 	while(1){
 		k_print_str("A");
 		k_print_hex(i++);
+		k_print_str("-");
+		k_print_hex(get_ticks());
 		k_print_str(" ");
-		delay(1);
+		delay(1000);
 	}
 }
 
