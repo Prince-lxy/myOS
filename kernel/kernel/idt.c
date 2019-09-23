@@ -39,10 +39,9 @@ PUBLIC void irq_handler(int irq)
 PUBLIC void clock_handler(int irq)
 {
 	ticks++;
-	p_process_table++;
-	if (p_process_table >= process_table + NUM_TASKS) {
-		p_process_table = process_table;
-	}
+	p_process_table->ticks--;
+
+	schedule();
 }
 
 PUBLIC void exception_handler(int vec_num, int err_code, int eip, int cs, int eflags)

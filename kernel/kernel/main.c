@@ -55,7 +55,7 @@ void process_A()
 	}
 }
 
-PUBLIC void init_process(int pid, void* func)
+PUBLIC void init_process(int pid, void* func, int priority)
 {
 	PROCESS* p_process = &process_table[pid];
 
@@ -82,6 +82,9 @@ PUBLIC void init_process(int pid, void* func)
 	/* pid */
 	p_process->pid = pid;
 
+	/* priority */
+	p_process->ticks = p_process->priority = priority;
+
 	/* GDT LDT */
 	init_descriptor(&gdt[(SELECTOR_LDT + (0x8 * pid)) >> 3], vir2phys(seg2phys(SELECTOR_KERNEL_RW),
 			 process_table[0].ldts), LDT_SIZE * sizeof(DESCRIPTOR), DA_LDT);
@@ -101,9 +104,9 @@ void init_tss()
 PUBLIC void main()
 {
 	init_tss();
-	init_process(0, process_A);
-	init_process(1, process_B);
-	init_process(2, process_C);
+	init_process(0, process_A, 3000);
+	init_process(1, process_B, 2000);
+	init_process(2, process_C, 1000);
 
 	k_print_str("main finished\n");
 }

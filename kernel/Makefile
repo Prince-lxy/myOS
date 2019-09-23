@@ -17,6 +17,7 @@ OBJS += kernel/idt.o
 OBJS += kernel/sys_call.o
 OBJS += kernel/main.o
 OBJS += kernel/protect.o
+OBJS += kernel/process.o
 OBJS += lib/libstr.o
 OBJS += lib/libports.o
 OBJS += lib/libprint.o
@@ -63,6 +64,10 @@ kernel/main.o: kernel/main.c include/const.h include/type.h include/string.h \
 	$(CC) $(CFLAG) -c -o $@ $<
 
 kernel/protect.o: kernel/protect.c include/const.h include/type.h \
+ include/protect.h include/global.h
+	$(CC) $(CFLAG) -c -o $@ $<
+
+kernel/process.o: kernel/process.c include/const.h include/type.h \
  include/protect.h include/global.h
 	$(CC) $(CFLAG) -c -o $@ $<
 

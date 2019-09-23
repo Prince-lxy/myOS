@@ -31,6 +31,9 @@ typedef struct s_process {
 	DESCRIPTOR	ldts[LDT_SIZE];		// LDTs
 	t_32		pid;			// 进程号
 	char		p_name[16];		// 进程名字
+	int		ticks;			// 剩余运行时间
+	int		priority;		// 优先级
 }PROCESS;
 
+PUBLIC void schedule();
 #endif /* PROCESS_H */
