@@ -43,4 +43,7 @@
 #define	TIMER_FREQ		(5 * 1193182L)
 #define	HZ			1000
 
+/* 键盘 */
+#define	KEYBOARD_DATA		0x60
+
 #endif /* CONST_H */

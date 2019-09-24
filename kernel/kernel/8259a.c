@@ -22,8 +22,8 @@ PUBLIC void init_8259a()
 	out_byte(INT_M_MASK, 0x1);
 	out_byte(INT_S_MASK, 0x1);
 
-	/* OCW1 开启时钟中断 */
-	out_byte(INT_M_MASK, 0xfe);
+	/* OCW1 设置中断屏蔽 */
+	out_byte(INT_M_MASK, 0xfc);
 	out_byte(INT_S_MASK, 0xff);
 
 	k_print_str("init 8259A finished\n");
