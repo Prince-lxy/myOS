@@ -9,8 +9,6 @@ extern p_process_table
 extern irq_table
 
 extern exception_handler
-extern irq_handler
-extern clock_handler
 
 global divide_error
 global debug
