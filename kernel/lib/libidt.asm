@@ -156,11 +156,9 @@ re_int	dd	0
 
 	mov esp, stack_top			;; kernel stack
 
-	sti
 	push %1
 	call [irq_table + 4 * %1]
 	add esp, 4
-	cli
 
 	in al, INT_M_MASK			;; enable same irq
 	and al, ~(1 << %1)
@@ -206,11 +204,9 @@ re_int	dd	0
 
 	mov esp, stack_top			;; kernel stack
 
-	sti
 	push %1
 	call [irq_table + 4 * %1]
 	add esp, 4
-	cli
 
 	in al, INT_S_MASK			;; enable same irq
 	and al, ~(1 << (%1 - 8))
