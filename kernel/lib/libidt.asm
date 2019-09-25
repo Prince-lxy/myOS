@@ -50,6 +50,8 @@ global hwint15
 global process_switching
 global disable_irq
 global enable_irq
+global cli
+global sti
 
 ;; X86 保护模式中断向量表 0x0 - 0x1f
 divide_error:
@@ -339,4 +341,14 @@ enable_8:
 	and al, ah
 	out INT_S_MASK, al
 	popf
+	ret
+
+;; 关闭中断响应
+cli:
+	cli
+	ret
+
+;; 开启中断响应
+sti:
+	sti
 	ret

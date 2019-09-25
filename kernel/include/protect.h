@@ -151,6 +151,9 @@ void hwint15();
 
 PUBLIC int enable_irq(int irq);
 PUBLIC int disable_irq(int irq);
+PUBLIC void cli();
+PUBLIC void sti();
+
 PUBLIC void init_idt();
 PUBLIC void init_8259a();
 
