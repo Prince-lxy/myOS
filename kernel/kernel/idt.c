@@ -36,14 +36,6 @@ PUBLIC void irq_handler(int irq)
 	k_print_str("\n");
 }
 
-PUBLIC void clock_handler(int irq)
-{
-	ticks++;
-	p_process_table->ticks--;
-
-	schedule();
-}
-
 PUBLIC void exception_handler(int vec_num, int err_code, int eip, int cs, int eflags)
 {
 	k_print_str("Exception --> ");
@@ -132,19 +124,8 @@ PUBLIC void init_idt()
 		irq_table[i] = irq_handler;
 	}
 
-	/* 设置中断函数 */
-	set_irq_handler(CLOCK_IRQ, clock_handler);
-
 	/* 设置系统调用中断门描述符 */
 	init_idt_desc(INT_VECTOR_SYS_CALL, DA_386IGate, sys_call, DA_DPL3);
-
-	/* 初始化 ticks */
-	ticks = 0;
-
-	/* 调整时钟频率 */
-	out_byte(TIMER_MODE, RATE_GENERATOR);
-	out_byte(TIMER0, (t_8)(TIMER_FREQ/HZ));
-	out_byte(TIMER0, (t_8)((TIMER_FREQ/HZ) >> 8));
 
 	k_print_str("init idt finished\n");
 }

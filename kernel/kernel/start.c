@@ -3,6 +3,7 @@
 #include "protect.h"
 #include "string.h"
 #include "keyboard.h"
+#include "clock.h"
 
 PUBLIC t_8		gdt_ptr[6];		// 0-15:limit	16-47:base
 PUBLIC DESCRIPTOR	gdt[GDT_SIZE];
@@ -31,6 +32,7 @@ PUBLIC void start()
 
 	init_8259a();
 	init_idt();
+	init_clock();
 	init_keyboard();
 
 	k_print_str("start finished\n");
