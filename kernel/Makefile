@@ -18,6 +18,7 @@ OBJS += kernel/sys_call.o
 OBJS += kernel/main.o
 OBJS += kernel/protect.o
 OBJS += kernel/process.o
+OBJS += kernel/keyboard.o
 OBJS += lib/libstr.o
 OBJS += lib/libports.o
 OBJS += lib/libprint.o
@@ -44,7 +45,7 @@ kernel/kernel.o: kernel/kernel.asm include/const.inc
 	$(ASM) $(ASMFLAG) -o $@ $<
 
 kernel/start.o: kernel/start.c include/const.h include/type.h \
- include/protect.h include/global.h include/string.h
+ include/protect.h include/global.h include/string.h include/keyboard.h
 	$(CC) $(CFLAG) -c -o $@ $<
 
 kernel/8259a.o: kernel/8259a.c include/const.h include/type.h \
@@ -69,6 +70,10 @@ kernel/protect.o: kernel/protect.c include/const.h include/type.h \
 
 kernel/process.o: kernel/process.c include/const.h include/type.h \
  include/protect.h include/global.h
+	$(CC) $(CFLAG) -c -o $@ $<
+
+kernel/keyboard.o: kernel/keyboard.c include/const.h include/type.h \
+ include/protect.h include/string.h include/ports.h include/keyboard.h
 	$(CC) $(CFLAG) -c -o $@ $<
 
 ### lib asm

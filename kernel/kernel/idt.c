@@ -44,12 +44,6 @@ PUBLIC void clock_handler(int irq)
 	schedule();
 }
 
-PUBLIC void keyboard_handler(int irq)
-{
-	k_print_hex(in_byte(KEYBOARD_DATA));
-	k_print_str(" ");
-}
-
 PUBLIC void exception_handler(int vec_num, int err_code, int eip, int cs, int eflags)
 {
 	k_print_str("Exception --> ");
@@ -140,7 +134,6 @@ PUBLIC void init_idt()
 
 	/* 设置中断函数 */
 	set_irq_handler(CLOCK_IRQ, clock_handler);
-	set_irq_handler(KEYBOARD_IRQ, keyboard_handler);
 
 	/* 设置系统调用中断门描述符 */
 	init_idt_desc(INT_VECTOR_SYS_CALL, DA_386IGate, sys_call, DA_DPL3);

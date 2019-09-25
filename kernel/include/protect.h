@@ -154,6 +154,7 @@ PUBLIC int disable_irq(int irq);
 PUBLIC void init_idt();
 PUBLIC void init_8259a();
 
+PUBLIC void set_irq_handler(int irq, t_irq_handler handler);
 PUBLIC void init_idt_desc(t_8 vector_num, t_8 desc_type, t_int_handler handler, t_8 privilege);
 PUBLIC void init_descriptor(DESCRIPTOR * p_desc, t_32 base, t_32 limit, t_16 attribute);
 PUBLIC t_32 seg2phys(t_16 seg);
