@@ -1,5 +1,6 @@
 #include "string.h"
 #include "global.h"
+#include "tty.h"
 
 PUBLIC PROCESS		process_table[NUM_TASKS];
 PUBLIC TSS		tss;
@@ -113,6 +114,9 @@ PUBLIC void main()
 	init_process(0, process_A, 3000);
 	init_process(1, process_B, 2000);
 	init_process(2, process_C, 1000);
+
+	/* 初始化 tty 处理进程 */
+	init_process(3, task_tty, 3000);
 
 	k_print_str("main finished\n");
 }
