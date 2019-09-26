@@ -2,6 +2,7 @@
 #define KEYBOARD_H
 
 #define	KB_IN_BUF_LEN	32
+#define	KEYBOARD_MODE	3
 
 typedef struct s_kb {
 	char*	head;
