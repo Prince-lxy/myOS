@@ -19,13 +19,13 @@ void process_C()
 	int i = 0;
 	k_print_str("process_C:");
 	while(1){
+#ifdef CONFIG_DEBUG
 		k_print_str("C");
-#ifdef CONFIG_DETAIL
 		k_print_hex(i++);
 		k_print_str("-");
 		k_print_hex(get_ticks());
-#endif
 		k_print_str(" ");
+#endif
 		delay(1000);
 	}
 }
@@ -35,13 +35,13 @@ void process_B()
 	int i = 0;
 	k_print_str("process_B:");
 	while(1){
+#ifdef CONFIG_DEBUG
 		k_print_str("B");
-#ifdef CONFIG_DETAIL
 		k_print_hex(i++);
 		k_print_str("-");
 		k_print_hex(get_ticks());
-#endif
 		k_print_str(" ");
+#endif
 		delay(1000);
 	}
 }
@@ -51,13 +51,13 @@ void process_A()
 	int i = 0;
 	k_print_str("process_A:");
 	while(1){
+#ifdef CONFIG_DEBUG
 		k_print_str("A");
-#ifdef CONFIG_DETAIL
 		k_print_hex(i++);
 		k_print_str("-");
 		k_print_hex(get_ticks());
-#endif
 		k_print_str(" ");
+#endif
 		delay(1000);
 	}
 }
