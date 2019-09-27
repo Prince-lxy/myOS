@@ -34,7 +34,7 @@
 
 /* 系统调用 */
 #define INT_VECTOR_SYS_CALL	0x90
-#define NUM_SYS_CALL		1
+#define NUM_SYS_CALL		2
 
 /* 8253 时钟 */
 #define	TIMER0			0x40
@@ -45,5 +45,11 @@
 
 /* 键盘 */
 #define	KEYBOARD_DATA		0x60
+
+/* 显示 */
+#define VIDEO_PORT_REG		0x3d4
+#define VIDEO_PORT_DATA		0x3d5
+#define CURSOR_ADDR_HIGH	14
+#define CURSOR_ADDR_LOW		15
 
 #endif /* CONST_H */

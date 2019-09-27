@@ -165,6 +165,8 @@ PUBLIC t_32 seg2phys(t_16 seg);
 
 PUBLIC int get_ticks();
 PUBLIC int sys_get_ticks();
+PUBLIC void set_cursor();
+PUBLIC void sys_set_cursor();
 PUBLIC void sys_call();
 
 #endif /* PROTECT_H */

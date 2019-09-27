@@ -23,3 +23,6 @@ EXTERN t_irq_handler	irq_table[NUM_IRQ];
 /* sys call 系统调用函数表 */
 EXTERN t_sys_call	sys_call_table[NUM_SYS_CALL];
 EXTERN t_32		ticks;
+
+/* 光标位置 */
+EXTERN t_32	k_print_pos;

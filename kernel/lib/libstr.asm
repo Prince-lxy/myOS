@@ -2,6 +2,8 @@
 global memcpy
 global k_print_str
 
+global k_print_pos
+
 [SECTION .data]
 k_print_pos	dd	160 * 10
 

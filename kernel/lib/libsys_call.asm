@@ -7,12 +7,18 @@ extern sys_call_table
 INT_VECTOR_SYS_CALL	equ	0x90
 
 global get_ticks
+global set_cursor
 global sys_call
 
 re_int_sys_call	dd	0
 
 get_ticks:
 	mov eax, 0
+	int INT_VECTOR_SYS_CALL
+	ret
+
+set_cursor:
+	mov eax, 1
 	int INT_VECTOR_SYS_CALL
 	ret
 
