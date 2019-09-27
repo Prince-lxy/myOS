@@ -151,12 +151,12 @@ PUBLIC void keyboard_read()
 
 			if (make) {
 				output[0] = keymap[scan_code & 0x7f][keyboard_mode];
-				k_print_str(output);
+				print_str(output);
 #ifdef CONFIG_DEBUG
-				k_print_str("(");
-				k_print_hex(scan_code);
-				k_print_str(")");
-				k_print_str(" ");
+				print_str("(");
+				print_hex(scan_code);
+				print_str(")");
+				print_str(" ");
 #endif
 			}
 		}

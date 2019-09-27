@@ -18,14 +18,14 @@ PUBLIC void delay(int millisecond)
 void process_C()
 {
 	int i = 0;
-	k_print_str("process_C:");
+	print_str("process_C:");
 	while(1){
 #ifdef CONFIG_DEBUG
-		k_print_str("C");
-		k_print_hex(i++);
-		k_print_str("-");
-		k_print_hex(get_ticks());
-		k_print_str(" ");
+		print_str("C");
+		print_hex(i++);
+		print_str("-");
+		print_hex(get_ticks());
+		print_str(" ");
 #endif
 		delay(1000);
 	}
@@ -34,14 +34,14 @@ void process_C()
 void process_B()
 {
 	int i = 0;
-	k_print_str("process_B:");
+	print_str("process_B:");
 	while(1){
 #ifdef CONFIG_DEBUG
-		k_print_str("B");
-		k_print_hex(i++);
-		k_print_str("-");
-		k_print_hex(get_ticks());
-		k_print_str(" ");
+		print_str("B");
+		print_hex(i++);
+		print_str("-");
+		print_hex(get_ticks());
+		print_str(" ");
 #endif
 		delay(1000);
 	}
@@ -50,14 +50,14 @@ void process_B()
 void process_A()
 {
 	int i = 0;
-	k_print_str("process_A:");
+	print_str("process_A:");
 	while(1){
 #ifdef CONFIG_DEBUG
-		k_print_str("A");
-		k_print_hex(i++);
-		k_print_str("-");
-		k_print_hex(get_ticks());
-		k_print_str(" ");
+		print_str("A");
+		print_hex(i++);
+		print_str("-");
+		print_hex(get_ticks());
+		print_str(" ");
 #endif
 		delay(1000);
 	}
