@@ -1,5 +1,6 @@
 #include "const.h"
 #include "string.h"
+#include "sys_call.h"
 
 PUBLIC char * k_htoa(char * num_str, int num)
 {
@@ -35,4 +36,16 @@ PUBLIC void k_print_hex(int num)
 	char num_str[16];
 	k_htoa(num_str, num);
 	k_print_str(num_str);
+}
+
+PUBLIC void print_str(char *str)
+{
+	k_print_str(str);
+	set_cursor();
+}
+
+PUBLIC void print_hex(int num)
+{
+	k_print_hex(num);
+	set_cursor();
 }

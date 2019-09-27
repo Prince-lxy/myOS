@@ -102,7 +102,7 @@ lib/libsys_call.o: lib/libsys_call.asm
 	$(ASM) $(ASMFLAG) -o $@ $^
 
 ### lib c
-lib/libprint.o: lib/libprint.c include/const.h include/string.h
+lib/libprint.o: lib/libprint.c include/const.h include/string.h include/sys_call.h
 	$(CC) $(CFLAG) -c -o $@ $<
 
 lib/libstring.o: lib/libstring.c include/const.h
