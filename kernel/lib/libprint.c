@@ -1,5 +1,7 @@
 #include "const.h"
 #include "string.h"
+#include "global.h"
+#include "ports.h"
 #include "sys_call.h"
 
 PUBLIC char * k_htoa(char * num_str, int num)
@@ -48,4 +50,22 @@ PUBLIC void print_hex(int num)
 {
 	k_print_hex(num);
 	set_cursor();
+}
+
+PUBLIC void clear()
+{
+	int i;
+	k_print_pos = 0;
+
+	for (i = 0; i < 80 * 25 ; i++) {
+		k_print_str(" ");
+	}
+
+	k_print_pos = 80 * 2;
+
+	/* 设置光标 */
+	out_byte(VIDEO_PORT_REG, CURSOR_ADDR_HIGH);
+	out_byte(VIDEO_PORT_DATA, 0);
+	out_byte(VIDEO_PORT_REG, CURSOR_ADDR_LOW);
+	out_byte(VIDEO_PORT_DATA, 80);
 }

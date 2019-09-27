@@ -9,5 +9,6 @@ PUBLIC void k_print_str(char * str);
 PUBLIC void k_print_hex(int num);
 PUBLIC void print_str(char * str);
 PUBLIC void print_hex(int num);
+PUBLIC void clear();
 
 #endif /* STRING_H */
