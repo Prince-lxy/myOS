@@ -1,6 +1,7 @@
 #include "string.h"
 #include "global.h"
 #include "tty.h"
+#include "sys_call.h"
 
 PUBLIC PROCESS		process_table[NUM_TASKS];
 PUBLIC TSS		tss;

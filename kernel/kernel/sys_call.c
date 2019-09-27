@@ -3,6 +3,7 @@
 #include "string.h"
 #include "global.h"
 #include "ports.h"
+#include "sys_call.h"
 
 PUBLIC t_sys_call	sys_call_table[NUM_SYS_CALL] = {sys_get_ticks, sys_set_cursor};
 

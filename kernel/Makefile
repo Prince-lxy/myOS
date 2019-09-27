@@ -60,11 +60,11 @@ kernel/idt.o: kernel/idt.c include/const.h include/type.h include/string.h \
 	$(CC) $(CFLAG) -c -o $@ $<
 
 kernel/sys_call.o: kernel/sys_call.c include/const.h include/type.h include/string.h \
- include/global.h include/protect.h
+ include/global.h include/sys_call.h
 	$(CC) $(CFLAG) -c -o $@ $<
 
 kernel/main.o: kernel/main.c include/const.h include/type.h include/string.h \
- include/protect.h include/process.h include/global.h include/tty.h
+ include/protect.h include/process.h include/global.h include/tty.h include/sys_call.h
 	$(CC) $(CFLAG) -c -o $@ $<
 
 kernel/protect.o: kernel/protect.c include/const.h include/type.h \
